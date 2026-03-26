@@ -12,7 +12,6 @@ interface AuthState {
   isUiLocked: boolean;
   setUiLocked: (locked: boolean) => void;
   initialize: () => Promise<void>;
-  // 🚨 CRITICAL FIX: Explicitly require password, not PIN, for primary login
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -62,17 +61,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       let isOnlineAuthSuccess = false;
       let activeSession = null;
 
-      // Initiate parallel tasks
-      const supabasePromise = navigator.onLine 
-        ? withTimeout(supabase.auth.signInWithPassword({ email, password }), 5000, "Supabase connection timed out.")
-        : null;
-      const dbPromise = withTimeout(bootCoreDatabase(), 3000, "Local database failed to wake up.");
-
-      // TIER 1: Strict Online Password Verification
-      if (supabasePromise) {
+      // 🚨 TIER 1: STRICT SEQUENTIAL ONLINE GATEKEEPER
+      if (navigator.onLine) {
         try {
           console.log("📡 [Auth] Attempting Live Supabase Login...");
-          const authResponse = await supabasePromise;
+          
+          const authResponse = await withTimeout(
+            supabase.auth.signInWithPassword({ email, password }), 
+            5000, 
+            "Supabase connection timed out."
+          );
 
           if (authResponse.error) {
             if (authResponse.error.message.toLowerCase().includes('credentials') || authResponse.error.message.toLowerCase().includes('invalid')) {
@@ -83,7 +81,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           
           isOnlineAuthSuccess = true;
           activeSession = authResponse.data.session;
-          console.log("✅ [Auth] Live Login Successful. Fetching profile...");
+          console.log("✅ [Auth] Live Login Successful. Now fetching local profile...");
           startCoreSync().catch(e => console.warn(e));
 
         } catch (tier1Error: unknown) {
@@ -94,28 +92,38 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       }
 
-      // TIER 2 & PROFILE HYDRATION: Wait for DB and query
-      const db = await dbPromise;
-      const usersDoc = await withTimeout(
+     // 🚨 TIER 2 & PROFILE HYDRATION: Only runs after Tier 1 finishes
+      console.log("🛡️ [Auth] Booting local cache to retrieve user profile...");
+      const db = await withTimeout(bootCoreDatabase(), 3000, "Local database failed to wake up.");
+      
+      let usersDoc = await withTimeout(
         db.admin_records.find({ selector: { record_type: 'user' } }).exec(),
         4000,
         "Offline database query timed out. IndexedDB connection may be corrupted."
       );
 
-      if (!usersDoc || usersDoc.length === 0) {
+      let rawUsers = usersDoc ? usersDoc.map(u => u.toJSON()) : [];
+      let localUser = rawUsers.find(u => u.email?.toLowerCase() === email.toLowerCase() && !u.is_deleted);
+
+      // 🚨 CRITICAL FIX: The "New Device" Catch-22 Waiter
+      // If this is a fresh login, background sync hasn't finished pulling the profile yet.
+      // We pause for 2.5 seconds to let the sync populate the database, then check again.
+      if (!localUser && isOnlineAuthSuccess) {
+         console.log("⏳ [Auth] Local profile not found. Waiting for background sync to catch up...");
+         await new Promise(resolve => setTimeout(resolve, 2500)); 
+         
+         usersDoc = await db.admin_records.find({ selector: { record_type: 'user' } }).exec();
+         rawUsers = usersDoc ? usersDoc.map(u => u.toJSON()) : [];
+         localUser = rawUsers.find(u => u.email?.toLowerCase() === email.toLowerCase() && !u.is_deleted);
+      }
+
+      if (!localUser) {
         throw new Error(navigator.onLine 
           ? "No profile found on this device. Please check your credentials or contact support." 
           : "No offline profile found. Connect to Wi-Fi to sync this device.");
       }
-
-      const rawUsers = usersDoc.map(u => u.toJSON());
-      const localUser = rawUsers.find(u => u.email?.toLowerCase() === email.toLowerCase() && !u.is_deleted);
-
-      if (!localUser) {
-        throw new Error("User profile not found on this device.");
-      }
-
-      // TIER 3: Offline Verification
+      
+      // 🚨 TIER 3: OFFLINE VERIFICATION
       if (!isOnlineAuthSuccess) {
         console.log("🔒 [Auth] Engaging Offline Verification...");
         const storedPin = String(localUser.pin || '');

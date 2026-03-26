@@ -143,8 +143,7 @@ export const startCoreSync = async () => {
                 return { 
                   ...cleanDoc, 
                   id: String(cleanDoc.id), 
-                  record_type: config.type, 
-                  _deleted: !!cleanDoc.is_deleted 
+                  record_type: config.type
                 };
               } 
             },
@@ -152,12 +151,38 @@ export const startCoreSync = async () => {
               modifier: (doc: Record<string, unknown>) => {
                 if (doc.record_type !== config.type) return null;
                 const cleanDoc = { ...doc };
-                cleanDoc.is_deleted = !!cleanDoc._deleted;
-                delete cleanDoc._deleted;
+                
+                console.log(`[Sync Push] Table: ${config.table}, Type: ${config.type}, Doc ID: ${cleanDoc.id}`);
+                console.log(`[Sync Push] Original Keys: ${Object.keys(cleanDoc).join(', ')}`);
+                
+                // Daily Logs Cleanup (Whitelist approach)
+                if (config.table === 'daily_logs') {
+                  delete cleanDoc['check_data'];
+                  const allowedFields = ['id', 'animal_id', 'log_type', 'log_date', 'value', 'notes', 'user_initials', 'weight_grams', 'weight', 'weight_unit', 'health_record_type', 'basking_temp_c', 'cool_temp_c', 'temperature_c', 'created_by', 'integrity_seal', 'created_at', 'updated_at', '_deleted', 'is_deleted'];
+                  Object.keys(cleanDoc).forEach(key => {
+                    if (!allowedFields.includes(key)) {
+                      console.log(`[Sync Push] Deleting ${key} from daily_logs (not in whitelist)`);
+                      delete cleanDoc[key];
+                    }
+                  });
+                }
+                
+                // Daily Rounds Cleanup
+                if (config.table === 'daily_rounds') {
+                  ['animal_id', 'log_type', 'log_date', 'value', 'temperature_c', 'basking_temp_c', 'cool_temp_c', 'health_record_type', 'weight_grams', 'weight', 'weight_unit', 'user_initials', 'integrity_seal'].forEach(key => delete cleanDoc[key]);
+                }
+
+                // Clinical Records Cleanup (Preventative)
+                if (['medical_logs', 'mar_charts', 'quarantine_records'].includes(config.table)) {
+                  // TODO: Identify non-relevant keys for clinical records tables
+                }
+
                 delete cleanDoc._attachments;
                 delete cleanDoc._rev;
                 delete cleanDoc._meta;
                 delete cleanDoc.record_type; 
+                
+                console.log(`[Sync Push] Final Keys: ${Object.keys(cleanDoc).join(', ')}`);
                 return cleanDoc;
               } 
             },
