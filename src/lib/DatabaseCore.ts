@@ -4,6 +4,10 @@ import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/repl
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
 
+interface KoaWindow extends Window {
+  __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
+}
+
 const SYNC_TABLES = [
   'animals', 'archived_animals', 'daily_logs', 'daily_rounds',
   'medical_logs', 'mar_charts', 'quarantine_records',
@@ -33,38 +37,32 @@ const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   return acc;
 }, {} as Record<string, any>);
 
-let dbPromise: Promise<RxDatabase> | null = null;
-
 export const bootCoreDatabase = async (): Promise<RxDatabase> => {
-  if (dbPromise) return dbPromise;
+  const koaWindow = window as unknown as KoaWindow;
+  
+  if (koaWindow.__KOA_DB_PROMISE) return koaWindow.__KOA_DB_PROMISE;
 
-  console.log("🛡️ [Core DB] Booting Project Phoenix v6 (Sovereign Engine)...");
+  console.log("🛡️ [Core DB] Booting Project Phoenix v8 (Ironclad Engine)...");
 
-  dbPromise = (async () => {
+  koaWindow.__KOA_DB_PROMISE = (async () => {
     try {
       const db = await createRxDatabase({
-        name: 'koa_manager_phoenix_v6',
+        name: 'koa_manager_ironclad_v1',
         storage: getRxStorageDexie()
       });
 
-      try {
+      if (!db.collections.animals) {
         await db.addCollections(appSchemas);
-      } catch (err: any) {
-        if (err.parameters?.rxdb_error_code === 'COL23' || err.message?.includes('COL23')) {
-          console.warn("🛡️ [Core DB] COL23 intercepted and swallowed.");
-        } else {
-          throw err;
-        }
       }
 
       return db;
     } catch (error: any) {
-      dbPromise = null;
+      koaWindow.__KOA_DB_PROMISE = null;
       throw error;
     }
   })();
 
-  return dbPromise;
+  return koaWindow.__KOA_DB_PROMISE;
 };
 
 const activeReplications: RxSupabaseReplicationState<unknown>[] = [];
@@ -93,7 +91,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection,
-        replicationIdentifier: `v6_${table}_sync`,
+        replicationIdentifier: `ironclad_${table}_sync`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',
