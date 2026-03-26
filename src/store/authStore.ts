@@ -33,8 +33,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     try {
-      await bootCoreDatabase().catch(e => console.warn("Background DB boot issue:", e));
-      
       if (navigator.onLine) {
         const { data: { session } } = await withTimeout(
            supabase.auth.getSession(), 
@@ -43,7 +41,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         );
         if (session) {
           set({ session, isLoading: false });
-          startCoreSync().catch(e => console.warn("Background sync issue:", e));
           return;
         }
       }

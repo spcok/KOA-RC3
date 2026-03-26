@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 
 interface KoaWindow extends Window {
   __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
+  __KOA_DB_INSTANCE?: RxDatabase | null;
 }
 
 const SYNC_TABLES = [
@@ -35,19 +36,19 @@ const universalSchema: RxJsonSchema<Record<string, unknown>> = {
 const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   acc[table] = { schema: universalSchema };
   return acc;
-}, {} as Record<string, any>);
+}, {} as Record<string, { schema: RxJsonSchema<Record<string, unknown>> }>);
 
 export const bootCoreDatabase = async (): Promise<RxDatabase> => {
   const koaWindow = window as unknown as KoaWindow;
   
   if (koaWindow.__KOA_DB_PROMISE) return koaWindow.__KOA_DB_PROMISE;
 
-  console.log("🛡️ [Core DB] Booting Project Phoenix v8 (Ironclad Engine)...");
+  console.log("🛡️ [Core DB] Booting Project Phoenix v8 (Ironclad Engine v2)...");
 
   koaWindow.__KOA_DB_PROMISE = (async () => {
     try {
       const db = await createRxDatabase({
-        name: 'koa_manager_ironclad_v1',
+        name: 'koa_manager_ironclad_v2',
         storage: getRxStorageDexie()
       });
 
@@ -55,9 +56,11 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
         await db.addCollections(appSchemas);
       }
 
+      koaWindow.__KOA_DB_INSTANCE = db;
       return db;
-    } catch (error: any) {
+    } catch (error: unknown) {
       koaWindow.__KOA_DB_PROMISE = null;
+      koaWindow.__KOA_DB_INSTANCE = null;
       throw error;
     }
   })();
@@ -91,7 +94,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection,
-        replicationIdentifier: `ironclad_${table}_sync`,
+        replicationIdentifier: `ironclad_${table}_sync_v2`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',

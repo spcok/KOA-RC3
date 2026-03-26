@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bootCoreDatabase } from '../lib/DatabaseCore';
+import { bootCoreDatabase, startCoreSync } from '../lib/DatabaseCore';
 import { useAuthStore } from '../store/authStore';
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const DatabaseBootProvider: React.FC<Props> = ({ children }) => {
-  const { currentUser } = useAuthStore();
+  const { session } = useAuthStore();
   const [isBooting, setIsBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,16 +16,19 @@ export const DatabaseBootProvider: React.FC<Props> = ({ children }) => {
     const initDb = async () => {
       try {
         await bootCoreDatabase();
+        if (session) {
+          startCoreSync().catch(e => console.warn(e));
+        }
         if (isMounted) setIsBooting(false);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Fatal Database Boot Error:", err);
-        if (isMounted) setError(err.message || "Unknown Database Error");
+        if (isMounted) setError(err instanceof Error ? err.message : "Unknown Database Error");
       }
     };
     
     initDb();
     return () => { isMounted = false; };
-  }, []);
+  }, [session]);
 
   if (error) {
     return (
@@ -41,7 +44,7 @@ export const DatabaseBootProvider: React.FC<Props> = ({ children }) => {
     );
   }
 
-  if (isBooting && currentUser) {
+  if (isBooting) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#18181b] transition-all duration-500 z-[100]">
         <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6 shadow-[0_0_15px_rgba(16,185,129,0.2)]"></div>
