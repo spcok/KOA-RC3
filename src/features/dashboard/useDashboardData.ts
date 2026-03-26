@@ -38,25 +38,21 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        const liveSub = db.animals.find({
-          selector: { record_type: 'animals' }
-        }).$.subscribe(docs => {
+        const liveSub = db.animals.find().$.subscribe(docs => {
           if (isMounted) {
-            setLiveAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
+            setLiveAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
             setIsLoading(false);
           }
         });
 
-        const archivedSub = db.animals.find({
-          selector: { record_type: 'archived_animals' }
-        }).$.subscribe(docs => {
-          if (isMounted) setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
+        const archivedSub = db.archived_animals.find().$.subscribe(docs => {
+          if (isMounted) setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
         });
 
-        const logsSub = db.daily_records.find({
+        const logsSub = db.daily_logs.find({
           selector: { log_date: viewDate }
         }).$.subscribe(docs => {
-          if (isMounted) setLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !d.is_deleted));
+          if (isMounted) setLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
         });
 
         subs = [liveSub, archivedSub, logsSub];

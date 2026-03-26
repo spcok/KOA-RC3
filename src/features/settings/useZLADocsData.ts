@@ -16,10 +16,7 @@ export function useZLADocsData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.admin_records.find({
-          selector: {
-            record_type: 'zla_document'}
-        }).$.subscribe(docs => {
+        sub = db.zla_documents.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as ZLADocument).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date((b as unknown as { created_at?: string }).created_at || 0).getTime() - new Date((a as unknown as { created_at?: string }).created_at || 0).getTime());
@@ -47,12 +44,11 @@ export function useZLADocsData() {
     const newDoc = {
       ...doc,
       id,
-      record_type: 'zla_document',
       is_deleted: false,
       updated_at: new Date().toISOString()
     };
     try {
-      await db.admin_records.upsert(newDoc);
+      await db.zla_documents.upsert(newDoc);
     } catch (err) {
       console.error('Failed to add document:', err);
     }
@@ -61,7 +57,7 @@ export function useZLADocsData() {
   const deleteDocument = async (id: string) => {
     const db = await bootCoreDatabase();
     try {
-      const doc = await db.admin_records.findOne(id).exec();
+      const doc = await db.zla_documents.findOne(id).exec();
       if (doc) {
         await doc.patch({
           is_deleted: true,

@@ -194,9 +194,9 @@ export const useMigrationData = () => {
 
       const allData: { table: string, data: (Animal | LogEntry | InternalMovement | ClinicalNote)[], chunkSize: number }[] = [
         { table: 'animals', data: animalsToImport, chunkSize: 50 },
-        { table: 'daily_records', data: logsToImport.map(d => ({ ...d, record_type: 'daily_logs_v2' })), chunkSize: 250 },
-        { table: 'logistics_records', data: movementsToImport.map(d => ({ ...d, record_type: 'internal_movements' })), chunkSize: 250 },
-        { table: 'clinical_records', data: medicalToImport.map(d => ({ ...d, record_type: 'medical_logs' })), chunkSize: 250 }
+        { table: 'daily_logs', data: logsToImport, chunkSize: 250 },
+        { table: 'internal_movements', data: movementsToImport, chunkSize: 250 },
+        { table: 'medical_logs', data: medicalToImport, chunkSize: 250 }
       ];
       
       let totalItems = 0;

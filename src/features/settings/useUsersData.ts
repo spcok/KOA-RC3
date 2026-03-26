@@ -21,10 +21,7 @@ export function useUsersData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        const usersSub = db.admin_records.find({
-          selector: {
-            record_type: 'user'}
-        }).$.subscribe(docs => {
+        const usersSub = db.users.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as unknown as User).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -33,10 +30,7 @@ export function useUsersData() {
           }
         });
 
-        const rolesSub = db.admin_records.find({
-          selector: {
-            record_type: 'role_permission'}
-        }).$.subscribe(docs => {
+        const rolesSub = db.role_permissions.find().$.subscribe(docs => {
           if (isMounted) {
             const rolesData = docs.map(d => d.toJSON() as unknown as RolePermissionConfig).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const roleOrder = ['VOLUNTEER', 'KEEPER', 'SENIOR_KEEPER', 'ADMIN', 'OWNER'];
@@ -76,7 +70,7 @@ export function useUsersData() {
     
     // Also delete locally
     const db = await bootCoreDatabase();
-    const doc = await db.admin_records.findOne(id).exec();
+    const doc = await db.users.findOne(id).exec();
     if (doc) {
       await doc.patch({ is_deleted: true, updated_at: new Date().toISOString() });
     }
@@ -84,7 +78,7 @@ export function useUsersData() {
 
   const updateUser = async (id: string, updates: Partial<User>) => {
     const db = await bootCoreDatabase();
-    const doc = await db.admin_records.findOne(id).exec();
+    const doc = await db.users.findOne(id).exec();
     if (doc) {
       await doc.patch({
         ...updates,
@@ -95,9 +89,8 @@ export function useUsersData() {
 
   const updateRolePermissions = async (role: string, updates: Partial<RolePermissionConfig>) => {
     const db = await bootCoreDatabase();
-    const docs = await db.admin_records.find({
+    const docs = await db.role_permissions.find({
       selector: {
-        record_type: 'role_permission',
         role: role
       }
     }).exec();

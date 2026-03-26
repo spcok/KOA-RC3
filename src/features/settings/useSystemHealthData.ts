@@ -133,10 +133,10 @@ export function useSystemHealthData() {
 
         const counts = {
           animals: await db.animals.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          users: await db.admin_records.find({ selector: { record_type: 'user' } }).exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          daily_logs: await db.daily_records.find({ selector: { record_type: 'daily_logs_v2' } }).exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
+          users: await db.users.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
+          daily_logs: await db.daily_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
           tasks: await db.tasks.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          medical_logs: await db.clinical_records.find({ selector: { record_type: 'medical_logs' } }).exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length)
+          medical_logs: await db.medical_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length)
         };
         if (isMounted) setTableCounts(counts);
       } catch (e) {

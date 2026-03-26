@@ -26,9 +26,8 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
   const handleHusbandrySave = async (entry: Partial<LogEntry>) => {
     try {
       const db = await bootCoreDatabase();
-      await db.daily_records.upsert({
+      await db.daily_logs.upsert({
         ...entry,
-        record_type: 'daily_logs_v2',
         is_deleted: false
       });
     } catch (err) {
@@ -43,10 +42,9 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
       const noteWithMetadata = {
         ...note,
         animal_name: animal.name,
-        record_type: 'clinical_note',
         is_deleted: false
       };
-      await db.clinical_records.upsert(noteWithMetadata);
+      await db.medical_logs.upsert(noteWithMetadata);
     } catch (err) {
       console.error("🛠️ [Animals QA] Failed to save medical log:", err);
     }

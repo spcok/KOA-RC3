@@ -16,14 +16,9 @@ export function useTransfersData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.logistics_records.find({
-          selector: { 
-            
-            record_type: { $eq: 'transfers' }
-          }
-        }).$.subscribe(docs => {
+        sub = db.external_transfers.find().$.subscribe(docs => {
           if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as ExternalTransfer).filter(d => !d.is_deleted);
+            const rawData = docs.map(d => d.toJSON() as ExternalTransfer).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
             setTransfers(sortedData);
             setIsLoading(false);
@@ -48,11 +43,10 @@ export function useTransfersData() {
     const newTransfer: ExternalTransfer = {
       ...transfer,
       id: uuidv4(),
-      record_type: 'transfers',
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as ExternalTransfer;
-    await db.logistics_records.upsert(newTransfer);
+    await db.external_transfers.upsert(newTransfer);
   };
 
   return {

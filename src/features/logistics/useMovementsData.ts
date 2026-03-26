@@ -16,14 +16,9 @@ export function useMovementsData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.logistics_records.find({
-          selector: { 
-            
-            record_type: { $eq: 'movements' }
-          }
-        }).$.subscribe(docs => {
+        sub = db.internal_movements.find().$.subscribe(docs => {
           if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as InternalMovement).filter(d => !d.is_deleted);
+            const rawData = docs.map(d => d.toJSON() as InternalMovement).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.log_date || 0).getTime() - new Date(a.log_date || 0).getTime());
             setMovements(sortedData);
             setIsLoading(false);
@@ -48,12 +43,11 @@ export function useMovementsData() {
     const newMovement: InternalMovement = {
       ...movement,
       id: uuidv4(),
-      record_type: 'movements',
       created_by: 'SYS', // Mock user
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as InternalMovement;
-    await db.logistics_records.upsert(newMovement);
+    await db.internal_movements.upsert(newMovement);
   };
 
   return {

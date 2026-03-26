@@ -55,9 +55,8 @@ export const useRoleSettings = () => {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.admin_records.find({
-          selector: {
-            record_type: 'role_permission'}
+        sub = db.role_permissions.find({
+          selector: {}
         }).$.subscribe(docs => {
           if (isMounted) {
             setRoles(docs.map(d => d.toJSON() as RolePermissionConfig).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
@@ -91,10 +90,9 @@ export const useRoleSettings = () => {
             role,
             ...defaultPermissions};
           try {
-            await db.admin_records.upsert({
+            await db.role_permissions.upsert({
               ...newRoleConfig,
               id: `role_${role}`,
-              record_type: 'role_permission',
               is_deleted: false,
               updated_at: new Date().toISOString()
             });

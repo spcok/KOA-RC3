@@ -16,14 +16,9 @@ export function useHolidayData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.staff_records.find({
-          selector: { 
-            
-            record_type: { $eq: 'holidays' }
-          }
-        }).$.subscribe(docs => {
+        sub = db.holidays.find().$.subscribe(docs => {
           if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as Holiday).filter(d => !d.is_deleted);
+            const rawData = docs.map(d => d.toJSON() as Holiday).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime());
             setHolidays(sortedData);
             setIsLoading(false);
@@ -48,21 +43,19 @@ export function useHolidayData() {
     const newHoliday: Holiday = {
       ...holiday,
       id: uuidv4(),
-      record_type: 'holidays',
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as Holiday;
-    await db.staff_records.upsert(newHoliday);
+    await db.holidays.upsert(newHoliday);
   };
 
   const deleteHoliday = async (id: string) => {
     const db = await bootCoreDatabase();
-    const holidayDoc = await db.staff_records.findOne(id).exec();
+    const holidayDoc = await db.holidays.findOne(id).exec();
     if (holidayDoc) {
       const holiday = holidayDoc.toJSON();
-      await db.staff_records.upsert({
+      await db.holidays.upsert({
         ...holiday,
-        record_type: 'holidays',
         is_deleted: true,
         updated_at: new Date().toISOString()
       });

@@ -27,7 +27,7 @@ export function useOrgSettings() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.admin_records.findOne('profile').$.subscribe(doc => {
+        sub = db.organisations.findOne('profile').$.subscribe(doc => {
           if (isMounted && doc) {
             setSettings(doc.toJSON() as unknown as OrgProfileSettings);
             setIsLoading(false);
@@ -51,10 +51,9 @@ export function useOrgSettings() {
 
   const saveSettings = async (newSettings: OrgProfileSettings) => {
     const db = await bootCoreDatabase();
-    await db.admin_records.upsert({
+    await db.organisations.upsert({
       ...newSettings,
       id: 'profile',
-      record_type: 'org_profile',
       updated_at: new Date().toISOString()
     });
   };

@@ -197,9 +197,8 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
             created_by: String(currentUser?.initials || 'SYSTEM'),
             notes: 'Auto-generated from profile location update.'
           };
-          await db.logistics_records.upsert({
+          await db.internal_movements.upsert({
             ...internalMovement,
-            record_type: 'movements',
             is_deleted: false
           });
         }
@@ -217,9 +216,8 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
             status: TransferStatus.COMPLETED,
             notes: `Auto-generated from animal creation (Type: ${payload.acquisition_type}).`
           };
-          await db.logistics_records.upsert({
+          await db.external_transfers.upsert({
             ...externalTransfer,
-            record_type: 'transfers',
             is_deleted: false
           });
         }
@@ -234,7 +232,6 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
         ...initialData,
         ...payload,
         id: targetId,
-        record_type: 'animals',
         is_deleted: false
       } as Animal;
 

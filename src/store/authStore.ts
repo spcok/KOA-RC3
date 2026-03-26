@@ -97,7 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const db = await withTimeout(bootCoreDatabase(), 3000, "Local database failed to wake up.");
       
       let usersDoc = await withTimeout(
-        db.admin_records.find({ selector: { record_type: 'user' } }).exec(),
+        db.users.find({ selector: {} }).exec(),
         4000,
         "Offline database query timed out. IndexedDB connection may be corrupted."
       );
@@ -112,7 +112,7 @@ export const useAuthStore = create<AuthState>((set) => ({
          console.log("⏳ [Auth] Local profile not found. Waiting for background sync to catch up...");
          await new Promise(resolve => setTimeout(resolve, 2500)); 
          
-         usersDoc = await db.admin_records.find({ selector: { record_type: 'user' } }).exec();
+         usersDoc = await db.users.find({ selector: {} }).exec();
          rawUsers = usersDoc ? usersDoc.map(u => u.toJSON()) : [];
          localUser = rawUsers.find(u => u.email?.toLowerCase() === email.toLowerCase() && !u.is_deleted);
       }

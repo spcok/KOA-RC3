@@ -25,8 +25,8 @@ const AnimalsList = () => {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.animals.find({
-          selector: { record_type: 'archived_animals' }
+        sub = db.archived_animals.find({
+          selector: {}
         }).$.subscribe(docs => {
           if (isMounted) {
             setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));

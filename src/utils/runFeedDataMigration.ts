@@ -7,7 +7,7 @@ export const runFeedDataMigration = async () => {
     const db = await bootCoreDatabase();
     
     // Find all FEED logs that are not deleted
-    const feedLogs = await db.daily_records.find({
+    const feedLogs = await db.daily_logs.find({
       selector: {
         log_type: 'FEED',
         is_deleted: false

@@ -47,26 +47,16 @@ export function useMissingRecordsData() {
         if (!isMounted) return;
 
         const animalsSub = db.animals.find().$.subscribe(docs => {
-          if (isMounted) setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
+          if (isMounted) setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
         });
 
-        const dailyLogsSub = db.daily_records.find({ 
-          selector: { 
-            
-            record_type: { $eq: 'daily_logs_v2' }
-          } 
-        }).$.subscribe(docs => {
-          if (isMounted) setDailyLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !d.is_deleted));
+        const dailyLogsSub = db.daily_logs.find().$.subscribe(docs => {
+          if (isMounted) setDailyLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
         });
 
-        const medicalLogsSub = db.clinical_records.find({ 
-          selector: { 
-            
-            record_type: { $eq: 'medical_logs' }
-          } 
-        }).$.subscribe(docs => {
+        const medicalLogsSub = db.medical_logs.find().$.subscribe(docs => {
           if (isMounted) {
-            setMedicalLogs(docs.map(d => d.toJSON() as ClinicalNote).filter(d => !d.is_deleted));
+            setMedicalLogs(docs.map(d => d.toJSON() as ClinicalNote).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
             setIsLoading(false);
           }
         });

@@ -165,23 +165,23 @@ export default function ReportsDashboard() {
         if (!isMounted) return;
 
         animalsSub = db.animals.find({
-          selector: { record_type: 'animals'}
+          selector: {}
         }).$.subscribe(docs => {
           if (isMounted) {
             setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
           }
         });
 
-        archivedSub = db.animals.find({
-          selector: { record_type: 'archived_animals'}
+        archivedSub = db.archived_animals.find({
+          selector: {}
         }).$.subscribe(docs => {
           if (isMounted) {
             setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
           }
         });
 
-        shiftsSub = db.staff_records.find({
-          selector: { record_type: 'shifts'}
+        shiftsSub = db.shifts.find({
+          selector: {}
         }).$.subscribe(docs => {
           if (isMounted) {
             setRawShifts(docs.map(d => d.toJSON() as Shift).filter(d => !d.is_deleted));
@@ -258,9 +258,8 @@ export default function ReportsDashboard() {
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        const rawLogs = await db.daily_records.find({
+        const rawLogs = await db.daily_logs.find({
           selector: {
-            record_type: 'daily_logs_v2',
             log_date: {
               $gte: startDate,
               $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).toISOString()
@@ -296,9 +295,8 @@ export default function ReportsDashboard() {
         }
         return;
       } else if (activeReportId === 'internal_movements') {
-        const rawData = await db.logistics_records.find({
+        const rawData = await db.internal_movements.find({
           selector: {
-            record_type: 'movements',
             log_date: {
               $gte: startDate,
               $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)).toISOString()
@@ -332,9 +330,8 @@ export default function ReportsDashboard() {
         }
         return;
       } else if (activeReportId === 'external_transfers') {
-        const rawData = await db.logistics_records.find({
+        const rawData = await db.external_transfers.find({
           selector: {
-            record_type: 'transfers',
             date: {
               $gte: startDate,
               $lte: endDate
@@ -587,25 +584,23 @@ export default function ReportsDashboard() {
         }
         return;
       } else if (activeReportId === 'inspection_package') {
-        const medicalLogsDocs = await db.clinical_records.find({
+        const medicalLogsDocs = await db.medical_logs.find({
           selector: {
-            record_type: 'medical_logs',
             date: {
               $gte: startDate,
               $lte: endDate
             }}
         }).exec();
-        const medicalLogs = medicalLogsDocs.map(d => d.toJSON() as ClinicalNote).filter(d => !d.is_deleted);
+        const medicalLogs = medicalLogsDocs.map(d => d.toJSON() as ClinicalNote).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
 
-        const marChartsDocs = await db.clinical_records.find({
+        const marChartsDocs = await db.mar_charts.find({
           selector: {
-            record_type: 'mar_charts',
             start_date: {
               $gte: startDate,
               $lte: endDate
             }}
         }).exec();
-        const marCharts = marChartsDocs.map(d => d.toJSON() as MARChart).filter(d => !d.is_deleted);
+        const marCharts = marChartsDocs.map(d => d.toJSON() as MARChart).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
 
         const maintenanceLogsDocs = await db.maintenance_logs.find({
           selector: {

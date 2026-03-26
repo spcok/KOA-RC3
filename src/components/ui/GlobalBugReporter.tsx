@@ -25,7 +25,6 @@ const GlobalBugReporter: React.FC = () => {
     const reportId = uuidv4();
     const payload = {
       id: reportId,
-      record_type: 'bug_report',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_deleted: false,
@@ -39,7 +38,7 @@ const GlobalBugReporter: React.FC = () => {
     try {
       const db = await bootCoreDatabase();
       if (db) {
-        await db.admin_records.insert(payload);
+        await db.zla_documents.insert(payload);
       }
 
       setIsSuccess(true);

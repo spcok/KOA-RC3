@@ -16,14 +16,9 @@ export function useTimesheetData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.staff_records.find({
-          selector: { 
-            
-            record_type: { $eq: 'timesheets' }
-          }
-        }).$.subscribe(docs => {
+        sub = db.timesheets.find().$.subscribe(docs => {
           if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as Timesheet).filter(d => !d.is_deleted);
+            const rawData = docs.map(d => d.toJSON() as Timesheet).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
             setTimesheets(sortedData);
             setIsLoading(false);
@@ -47,7 +42,6 @@ export function useTimesheetData() {
     const db = await bootCoreDatabase();
     const newTimesheet: Timesheet = {
       id: uuidv4(),
-      record_type: 'timesheets',
       staff_name,
       date: new Date().toISOString().split('T')[0],
       clock_in: new Date().toISOString(),
@@ -55,17 +49,16 @@ export function useTimesheetData() {
       updated_at: new Date().toISOString(),
       is_deleted: false
     };
-    await db.staff_records.upsert(newTimesheet);
+    await db.timesheets.upsert(newTimesheet);
   };
 
   const clockOut = async (id: string) => {
     const db = await bootCoreDatabase();
-    const timesheetDoc = await db.staff_records.findOne(id).exec();
+    const timesheetDoc = await db.timesheets.findOne(id).exec();
     if (timesheetDoc) {
       const timesheet = timesheetDoc.toJSON();
-      await db.staff_records.upsert({
+      await db.timesheets.upsert({
         ...timesheet,
-        record_type: 'timesheets',
         clock_out: new Date().toISOString(),
         status: TimesheetStatus.COMPLETED,
         updated_at: new Date().toISOString()
@@ -75,11 +68,9 @@ export function useTimesheetData() {
 
   const getCurrentlyClockedInStaff = async () => {
     const db = await bootCoreDatabase();
-    const active = await db.staff_records.find({
+    const active = await db.timesheets.find({
       selector: { 
-        status: { $eq: TimesheetStatus.ACTIVE },
-        
-        record_type: { $eq: 'timesheets' }
+        status: { $eq: TimesheetStatus.ACTIVE }
       }
     }).exec();
     return active.map(t => t.staff_name);
@@ -90,21 +81,19 @@ export function useTimesheetData() {
     const newTimesheet: Timesheet = {
       ...timesheet,
       id: uuidv4(),
-      record_type: 'timesheets',
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as Timesheet;
-    await db.staff_records.upsert(newTimesheet);
+    await db.timesheets.upsert(newTimesheet);
   };
 
   const deleteTimesheet = async (id: string) => {
     const db = await bootCoreDatabase();
-    const timesheetDoc = await db.staff_records.findOne(id).exec();
+    const timesheetDoc = await db.timesheets.findOne(id).exec();
     if (timesheetDoc) {
       const timesheet = timesheetDoc.toJSON();
-      await db.staff_records.upsert({
+      await db.timesheets.upsert({
         ...timesheet,
-        record_type: 'timesheets',
         is_deleted: true,
         updated_at: new Date().toISOString()
       });

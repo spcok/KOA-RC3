@@ -18,14 +18,13 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.daily_records.find().$.subscribe(docs => {
+        sub = db.daily_logs.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as LogEntry);
             
             const filtered = rawData.filter(log => 
-              log.record_type === 'daily_logs_v2' && 
               (animalId ? log.animal_id === animalId : log.log_date === viewDate) && 
-              !log.is_deleted
+              !(log as unknown as { is_deleted?: boolean }).is_deleted
             );
             
             const sorted = filtered.sort((a, b) => {
@@ -63,11 +62,10 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
     const payload = {
       ...entry,
       id: entry.id || crypto.randomUUID(),
-      record_type: 'daily_logs_v2',
       updated_at: new Date().toISOString(),
       is_deleted: false
     };
-    await db.daily_records.upsert(payload);
+    await db.daily_logs.upsert(payload);
   }, []);
 
   const filteredAnimals = useMemo(() => {

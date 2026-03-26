@@ -1,6 +1,6 @@
 export interface HusbandryLog {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   date: string;
   type: 'FEED' | 'WEIGHT' | 'FLIGHT' | 'TRAINING' | 'TEMPERATURE';
@@ -17,7 +17,7 @@ export enum ShiftType {
 }
 export interface Shift {
   id: string;
-  record_type?: string;
+
   user_id: string;
   user_name: string; // denormalized for fast offline rendering
   user_role: string; // denormalized for filtering
@@ -140,7 +140,7 @@ export enum EntityType {
 
 export interface Animal {
   id: string;
-  record_type?: string;
+
   entity_type?: EntityType;
   parent_mob_id?: string;
   census_count?: number;
@@ -193,7 +193,7 @@ export interface Animal {
 
 export interface LogEntry {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   log_type: LogType;
   log_date: string;
@@ -217,7 +217,7 @@ export interface LogEntry {
 
 export interface Task {
   id: string;
-  record_type?: string;
+
   animal_id?: string;
   title: string;
   notes?: string;
@@ -253,7 +253,7 @@ export interface UserPermissions {
 
 export interface UserProfile {
   id: string;
-  record_type?: string;
+
   email: string;
   name: string;
   role: UserRole;
@@ -355,7 +355,7 @@ export interface OrgProfile {
 
 export interface ClinicalNote {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   animal_name: string;
   date: string;
@@ -378,7 +378,7 @@ export interface ClinicalNote {
 
 export interface MARChart {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   animal_name: string;
   medication: string;
@@ -397,7 +397,7 @@ export interface MARChart {
 
 export interface QuarantineRecord {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   animal_name: string;
   reason: string;
@@ -412,7 +412,7 @@ export interface QuarantineRecord {
 
 export interface InternalMovement {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   animal_name: string;
   log_date: string;
@@ -427,7 +427,7 @@ export interface InternalMovement {
 
 export interface ExternalTransfer {
   id: string;
-  record_type?: string;
+
   animal_id: string;
   animal_name: string;
   transfer_type: TransferType;
@@ -443,7 +443,7 @@ export interface ExternalTransfer {
 
 export interface Timesheet {
   id: string;
-  record_type?: string;
+
   staff_name: string;
   date: string;
   clock_in: string;
@@ -457,7 +457,7 @@ export interface Timesheet {
 
 export interface Holiday {
   id: string;
-  record_type?: string;
+
   staff_name: string;
   start_date: string;
   end_date: string;
@@ -470,7 +470,7 @@ export interface Holiday {
 
 export interface SafetyDrill {
   id: string;
-  record_type?: string;
+
   date: string;
   title: string;
   location: string;
@@ -484,7 +484,7 @@ export interface SafetyDrill {
 
 export interface MaintenanceLog {
   id: string;
-  record_type?: string;
+
   enclosure_id: string;
   task_type: 'UV Replacement' | 'Structural Repair' | 'General';
   description: string;
@@ -498,7 +498,7 @@ export interface MaintenanceLog {
 
 export interface FirstAidLog {
   id: string;
-  record_type?: string;
+
   date: string;
   time: string;
   person_name: string;
@@ -528,7 +528,7 @@ export enum IncidentSeverity {
 
 export interface DailyRound {
   id: string;
-  record_type?: string;
+
   date: string;
   shift: 'Morning' | 'Evening';
   section: string;
@@ -542,7 +542,7 @@ export interface DailyRound {
 
 export interface Incident {
   id: string;
-  record_type?: string;
+
   date: Date;
   time: string;
   type: IncidentType;
@@ -571,7 +571,7 @@ export interface SyncQueueItem {
 
 export interface OperationalList {
   id: string;
-  record_type?: string;
+
   type: 'food' | 'method' | 'location' | 'event';
   category: AnimalCategory;
   value: string;

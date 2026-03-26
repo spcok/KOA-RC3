@@ -26,19 +26,19 @@ export function useAnimalProfileData(animalId: string | undefined) {
 
         subs = [
           // 1. Animal Details
-          db.animals.find().$.subscribe(docs => {
+          db.animals.find({ selector: { id: animalId } }).$.subscribe(docs => {
             if (isMounted) {
               const raw = docs.map(d => d.toJSON() as Animal);
-              const foundAnimal = raw.find(a => a.record_type === 'animals' && a.id === animalId && !a.is_deleted);
+              const foundAnimal = raw.find(a => a.id === animalId && !(a as unknown as { is_deleted?: boolean }).is_deleted);
               setAnimal(foundAnimal || null);
             }
           }),
 
           // 2. Husbandry / Daily Logs
-          db.daily_records.find().$.subscribe(docs => {
+          db.daily_logs.find({ selector: { animal_id: animalId } }).$.subscribe(docs => {
             if (isMounted) {
               const raw = docs.map(d => d.toJSON() as LogEntry);
-              const animalLogs = raw.filter(l => l.record_type === 'daily_logs_v2' && l.animal_id === animalId && !l.is_deleted);
+              const animalLogs = raw.filter(l => l.animal_id === animalId && !(l as unknown as { is_deleted?: boolean }).is_deleted);
               
               // 🚨 CRITICAL FIX: Robust Date Fallback Sort (Newest First)
               const sortedLogs = animalLogs.sort((a, b) => {
@@ -51,10 +51,10 @@ export function useAnimalProfileData(animalId: string | undefined) {
           }),
 
           // 3. Medical Logs
-          db.clinical_records.find().$.subscribe(docs => {
+          db.medical_logs.find({ selector: { animal_id: animalId } }).$.subscribe(docs => {
             if (isMounted) {
               const raw = docs.map(d => d.toJSON() as ClinicalNote);
-              const animalMedLogs = raw.filter(m => m.record_type === 'medical_logs' && m.animal_id === animalId && !m.is_deleted);
+              const animalMedLogs = raw.filter(m => m.animal_id === animalId && !(m as unknown as { is_deleted?: boolean }).is_deleted);
               
               const sortedMed = animalMedLogs.sort((a, b) => {
                 const timeA = new Date(a.date || a.updated_at || 0).getTime();
@@ -66,10 +66,10 @@ export function useAnimalProfileData(animalId: string | undefined) {
           }),
 
           // 4. Tasks
-          db.tasks.find().$.subscribe(docs => {
+          db.tasks.find({ selector: { animal_id: animalId } }).$.subscribe(docs => {
             if (isMounted) {
               const raw = docs.map(d => d.toJSON() as Task);
-              const animalTasks = raw.filter(t => t.record_type === 'tasks' && t.animal_id === animalId && !t.is_deleted);
+              const animalTasks = raw.filter(t => t.animal_id === animalId && !(t as unknown as { is_deleted?: boolean }).is_deleted);
               
               const sortedTasks = animalTasks.sort((a, b) => {
                 const timeA = new Date(a.due_date || a.updated_at || 0).getTime();

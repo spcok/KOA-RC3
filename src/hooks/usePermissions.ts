@@ -66,8 +66,8 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        subscription = db.admin_records.find({
-          selector: { record_type: 'role_permission' }
+        subscription = db.role_permissions.find({
+          selector: {}
         }).$.subscribe((docs) => {
           const dbPerms = docs.map(d => d.toJSON() as unknown as Record<string, boolean | string>).filter(d => !d.is_deleted).find(d => String(d.role).toUpperCase() === currentRole);
           

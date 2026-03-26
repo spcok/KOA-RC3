@@ -1,31 +1,29 @@
-import { createRxDatabase, RxDatabase } from 'rxdb';
+import { createRxDatabase, RxDatabase, RxJsonSchema } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
+
+const supabaseManifest = {};
 
 interface KoaWindow extends Window {
   __KOA_DB_PROMISE: Promise<RxDatabase> | null;
   __KOA_DB_INSTANCE: RxDatabase | null;
 }
 
-const SYNC_MAP: Record<string, { table: string, type: string }[]> = {
-  animals: [{ table: 'animals', type: 'animals' }, { table: 'archived_animals', type: 'archived_animals' }],
-  daily_records: [{ table: 'daily_logs', type: 'daily_logs_v2' }, { table: 'daily_rounds', type: 'daily_rounds' }],
-  clinical_records: [{ table: 'medical_logs', type: 'medical_logs' }, { table: 'mar_charts', type: 'mar_charts' }, { table: 'quarantine_records', type: 'quarantine_records' }],
-  logistics_records: [{ table: 'internal_movements', type: 'internal_movements' }, { table: 'external_transfers', type: 'external_transfers' }],
-  staff_records: [{ table: 'shifts', type: 'shifts' }, { table: 'holidays', type: 'holidays' }, { table: 'timesheets', type: 'timesheets' }],
-  maintenance_logs: [{ table: 'maintenance_logs', type: 'maintenance_logs' }],
-  incidents: [{ table: 'incidents', type: 'incidents' }],
-  first_aid_logs: [{ table: 'first_aid_logs', type: 'first_aid_logs' }],
-  safety_drills: [{ table: 'safety_drills', type: 'safety_drills' }],
-  operational_lists: [{ table: 'operational_lists', type: 'operational_lists' }],
-  admin_records: [{ table: 'users', type: 'user' }, { table: 'organisations', type: 'organisation' }, { table: 'role_permissions', type: 'role_permission' }, { table: 'contacts', type: 'contact' }, { table: 'zla_documents', type: 'zla_document' }, { table: 'bug_reports', type: 'bug_report' }],
-  tasks: [{ table: 'tasks', type: 'tasks' }]
-};
+const SYNC_TABLES = [
+  'animals', 'archived_animals',
+  'daily_logs', 'daily_rounds',
+  'medical_logs', 'mar_charts', 'quarantine_records',
+  'internal_movements', 'external_transfers',
+  'shifts', 'holidays', 'timesheets',
+  'maintenance_logs', 'incidents', 'first_aid_logs', 'safety_drills',
+  'operational_lists', 'users', 'organisations', 'role_permissions',
+  'contacts', 'zla_documents', 'bug_reports', 'tasks'
+];
 
 const makeProps = (keys: string[]) => keys.reduce((acc, key) => ({ ...acc, [key]: { type: ['string', 'number', 'boolean', 'null', 'array', 'object'] } }), {});
-const baseProps = { id: { type: 'string', maxLength: 100 }, record_type: { type: 'string' }, is_deleted: { type: 'boolean' }, ...makeProps(['created_at', 'updated_at']) };
+const baseProps = { id: { type: 'string', maxLength: 100 }, is_deleted: { type: 'boolean' }, ...makeProps(['created_at', 'updated_at']) };
 
 const animalKeys = ['entity_type', 'parent_mob_id', 'census_count', 'name', 'species', 'latin_name', 'category', 'location', 'image_url', 'hazard_rating', 'is_venomous', 'weight_unit', 'dob', 'is_dob_unknown', 'sex', 'microchip_id', 'disposition_status', 'origin_location', 'destination_location', 'transfer_date', 'ring_number', 'has_no_id', 'red_list_status', 'description', 'special_requirements', 'critical_husbandry_notes', 'target_day_temp_c', 'target_night_temp_c', 'target_humidity_min_percent', 'target_humidity_max_percent', 'misting_frequency', 'acquisition_date', 'origin', 'sire_id', 'dam_id', 'flying_weight_g', 'winter_weight_g', 'display_order', 'archived', 'archive_reason', 'archived_at', 'archive_type', 'is_quarantine', 'distribution_map_url', 'water_tipping_temp', 'acquisition_type', 'microchip_number', 'birth_date', 'gender', 'website'];
 const adminKeys = ['email', 'name', 'role', 'initials', 'job_position', 'permissions', 'signature_data', 'pin', 'deleted_at', 'integrity_seal', 'org_name', 'logo_url', 'contact_email', 'contact_phone', 'address', 'zla_license_number', 'official_website', 'adoption_portal', 'message', 'is_online', 'url', 'user_name', 'view_animals', 'edit_animals', 'view_daily_logs', 'view_tasks', 'view_daily_rounds', 'view_medical', 'edit_medical', 'view_movements', 'view_incidents', 'view_maintenance', 'view_safety_drills', 'view_first_aid', 'view_timesheets', 'view_holidays', 'view_missing_records', 'generate_reports', 'view_settings', 'manage_access_control', 'add_animals', 'archive_animals', 'delete_animals', 'create_daily_logs', 'edit_daily_logs', 'complete_tasks', 'manage_tasks', 'log_daily_rounds', 'add_clinical_notes', 'prescribe_medications', 'administer_medications', 'manage_quarantine', 'log_internal_movements', 'manage_external_transfers', 'report_incidents', 'manage_incidents', 'report_maintenance', 'resolve_maintenance', 'submit_timesheets', 'manage_all_timesheets', 'request_holidays', 'approve_holidays', 'manage_zla_documents', 'manage_users', 'manage_roles', 'view_archived_records', 'type', 'value', 'is_enabled', 'permission_key', 'role_id'];
@@ -60,24 +58,50 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
   koaWindow.__KOA_DB_PROMISE = (async () => {
     try {
       const db = await createRxDatabase({
-        name: 'koa_manager_core_db_final',
+        name: 'koa_manager_phoenix_v2',
         storage: getRxStorageDexie(),
       });
 
-      await db.addCollections({
-        animals: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(animalKeys) }, required: ['id', 'record_type'] } },
-        admin_records: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(adminKeys) }, required: ['id', 'record_type'] } },
-        daily_records: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(dailyKeys) }, required: ['id', 'record_type'] } },
-        clinical_records: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(clinicalKeys) }, required: ['id', 'record_type'] } },
-        logistics_records: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(logisticsKeys) }, required: ['id', 'record_type'] } },
-        staff_records: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(staffKeys) }, required: ['id', 'record_type'] } },
-        maintenance_logs: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(maintenanceKeys) }, required: ['id', 'record_type'] } },
-        incidents: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(incidentKeys) }, required: ['id', 'record_type'] } },
-        first_aid_logs: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(firstAidKeys) }, required: ['id', 'record_type'] } },
-        safety_drills: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(safetyDrillKeys) }, required: ['id', 'record_type'] } },
-        operational_lists: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(listKeys) }, required: ['id', 'record_type'] } },
-        tasks: { schema: { version: 0, primaryKey: 'id', type: 'object', additionalProperties: false, properties: { ...baseProps, ...makeProps(taskKeys) }, required: ['id', 'record_type'] } }
+      const schemaTemplate = (keys: string[]): RxJsonSchema<Record<string, unknown>> => ({
+        version: 0,
+        primaryKey: 'id',
+        type: 'object',
+        additionalProperties: false,
+        properties: { ...baseProps, ...makeProps(keys) },
+        required: ['id']
       });
+
+      const appSchemas = {
+        animals: { schema: schemaTemplate(animalKeys) },
+        archived_animals: { schema: schemaTemplate(animalKeys) },
+        daily_logs: { schema: schemaTemplate(dailyKeys) },
+        daily_rounds: { schema: schemaTemplate(dailyKeys) },
+        medical_logs: { schema: schemaTemplate(clinicalKeys) },
+        mar_charts: { schema: schemaTemplate(clinicalKeys) },
+        quarantine_records: { schema: schemaTemplate(clinicalKeys) },
+        internal_movements: { schema: schemaTemplate(logisticsKeys) },
+        external_transfers: { schema: schemaTemplate(logisticsKeys) },
+        shifts: { schema: schemaTemplate(staffKeys) },
+        holidays: { schema: schemaTemplate(staffKeys) },
+        timesheets: { schema: schemaTemplate(staffKeys) },
+        maintenance_logs: { schema: schemaTemplate(maintenanceKeys) },
+        incidents: { schema: schemaTemplate(incidentKeys) },
+        first_aid_logs: { schema: schemaTemplate(firstAidKeys) },
+        safety_drills: { schema: schemaTemplate(safetyDrillKeys) },
+        operational_lists: { schema: schemaTemplate(listKeys) },
+        users: { schema: schemaTemplate(adminKeys) },
+        organisations: { schema: schemaTemplate(adminKeys) },
+        role_permissions: { schema: schemaTemplate(adminKeys) },
+        contacts: { schema: schemaTemplate(adminKeys) },
+        zla_documents: { schema: schemaTemplate(adminKeys) },
+        bug_reports: { schema: schemaTemplate(adminKeys) },
+        tasks: { schema: schemaTemplate(taskKeys) }
+      };
+
+      // Only add collections if they haven't been added yet
+      if (!db.collections.animals) {
+        await db.addCollections(appSchemas);
+      }
 
       koaWindow.__KOA_DB_INSTANCE = db;
       return db;
@@ -123,85 +147,58 @@ export const startCoreSync = async () => {
     errorSubscriptions.forEach(sub => sub.unsubscribe());
     errorSubscriptions.length = 0;
 
-    for (const [colName, configs] of Object.entries(SYNC_MAP)) {
-      const collection = db.collections[colName];
+    for (const tableName of SYNC_TABLES) {
+      const collection = db.collections[tableName];
       if (!collection) continue;
 
-      for (const config of configs) {
-        try {
-          const state = replicateSupabase({
-            collection,
-            replicationIdentifier: `core_${colName}_${config.table}_sync_v6`,
-            client: supabase,
-            tableName: config.table,
-            deletedField: 'is_deleted',
-            pull: { 
-              batchSize: 100, 
-              modifier: (doc: Record<string, unknown>) => {
-                const cleanDoc = { ...doc };
-                if (!cleanDoc.id) cleanDoc.id = crypto.randomUUID(); 
-                return { 
-                  ...cleanDoc, 
-                  id: String(cleanDoc.id), 
-                  record_type: config.type
-                };
-              } 
-            },
-            push: { 
-              modifier: (doc: Record<string, unknown>) => {
-                if (doc.record_type !== config.type) return null;
-                const cleanDoc = { ...doc };
-                
-                console.log(`[Sync Push] Table: ${config.table}, Type: ${config.type}, Doc ID: ${cleanDoc.id}`);
-                console.log(`[Sync Push] Original Keys: ${Object.keys(cleanDoc).join(', ')}`);
-                
-                // Daily Logs Cleanup (Whitelist approach)
-                if (config.table === 'daily_logs') {
-                  delete cleanDoc['check_data'];
-                  const allowedFields = ['id', 'animal_id', 'log_type', 'log_date', 'value', 'notes', 'user_initials', 'weight_grams', 'weight', 'weight_unit', 'health_record_type', 'basking_temp_c', 'cool_temp_c', 'temperature_c', 'created_by', 'integrity_seal', 'created_at', 'updated_at', '_deleted', 'is_deleted'];
-                  Object.keys(cleanDoc).forEach(key => {
-                    if (!allowedFields.includes(key)) {
-                      console.log(`[Sync Push] Deleting ${key} from daily_logs (not in whitelist)`);
-                      delete cleanDoc[key];
-                    }
-                  });
+      try {
+        const state = replicateSupabase({
+          collection,
+          replicationIdentifier: `core_${tableName}_sync_v7`,
+          client: supabase,
+          tableName: tableName,
+          deletedField: 'is_deleted',
+          pull: { 
+            batchSize: 100, 
+            modifier: (doc: Record<string, unknown>) => {
+              const cleanDoc = { ...doc };
+              if (!cleanDoc.id) cleanDoc.id = crypto.randomUUID(); 
+              return { 
+                ...cleanDoc, 
+                id: String(cleanDoc.id)
+              };
+            } 
+          },
+          push: { 
+            modifier: (doc: Record<string, unknown>) => {
+              const cleanDoc = { ...doc };
+              
+              const allowedColumns = (supabaseManifest as Record<string, string[]>)[tableName] || [];
+              
+              Object.keys(cleanDoc).forEach(key => {
+                if (key !== 'is_deleted' && key !== '_deleted' && !allowedColumns.includes(key)) {
+                  delete cleanDoc[key];
                 }
-                
-                // Daily Rounds Cleanup
-                if (config.table === 'daily_rounds') {
-                  ['animal_id', 'log_type', 'log_date', 'value', 'temperature_c', 'basking_temp_c', 'cool_temp_c', 'health_record_type', 'weight_grams', 'weight', 'weight_unit', 'user_initials', 'integrity_seal'].forEach(key => delete cleanDoc[key]);
-                }
-
-                // Clinical Records Cleanup (Preventative)
-                if (['medical_logs', 'mar_charts', 'quarantine_records'].includes(config.table)) {
-                  // TODO: Identify non-relevant keys for clinical records tables
-                }
-
-                delete cleanDoc._attachments;
-                delete cleanDoc._rev;
-                delete cleanDoc._meta;
-                delete cleanDoc.record_type; 
-                
-                console.log(`[Sync Push] Final Keys: ${Object.keys(cleanDoc).join(', ')}`);
-                return cleanDoc;
-              } 
-            },
-            live: true, 
-            retryTime: 5000 
-          });
-          
-          // 🚨 CRITICAL FIX: Scoped error subscription
-          const errorSub = state.error$.subscribe(err => {
-             if (err instanceof Error && err.message && !err.message.includes('Offline')) {
-                 console.error(`[Core Sync Error] ${config.table}:`, err);
-             }
-          });
-          
-          activeReplications.push(state);
-          errorSubscriptions.push(errorSub);
-        } catch (err: unknown) {
-          console.error(`[Sync Setup Failed] ${config.table}:`, err);
-        }
+              });
+              
+              return cleanDoc;
+            } 
+          },
+          live: true, 
+          retryTime: 5000 
+        });
+        
+        // 🚨 CRITICAL FIX: Scoped error subscription
+        const errorSub = state.error$.subscribe(err => {
+           if (err instanceof Error && err.message && !err.message.includes('Offline')) {
+               console.error(`[Core Sync Error] ${tableName}:`, err);
+           }
+        });
+        
+        activeReplications.push(state);
+        errorSubscriptions.push(errorSub);
+      } catch (err: unknown) {
+        console.error(`[Sync Setup Failed] ${tableName}:`, err);
       }
     }
   } finally {

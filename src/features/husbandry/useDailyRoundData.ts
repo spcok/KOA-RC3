@@ -37,9 +37,7 @@ export function useDailyRoundData(viewDate: string) {
 
                 subs = [
                     // 🚨 Fixed Query
-                    db.animals.find({
-                        selector: { record_type: 'animals' }
-                    }).$.subscribe(docs => {
+                    db.animals.find().$.subscribe(docs => {
                         if (isMounted) {
                             const rawData = docs.map(d => d.toJSON() as Animal);
                             setAllAnimals(rawData.filter(a => !(a as unknown as { is_deleted?: boolean }).is_deleted));
@@ -47,10 +45,9 @@ export function useDailyRoundData(viewDate: string) {
                     }),
 
                     // 🚨 Fixed Query
-                    db.daily_records.find({
+                    db.daily_logs.find({
                         selector: { 
-                            log_date: { $eq: viewDate },
-                            record_type: { $eq: 'daily_logs_v2' }
+                            log_date: { $eq: viewDate }
                         }
                     }).$.subscribe(docs => {
                         if (isMounted) {
@@ -60,10 +57,9 @@ export function useDailyRoundData(viewDate: string) {
                     }),
 
                     // 🚨 Fixed Query
-                    db.daily_records.find({
+                    db.daily_rounds.find({
                         selector: { 
-                            date: { $eq: viewDate },
-                            record_type: { $eq: 'daily_rounds' }
+                            date: { $eq: viewDate }
                         }
                     }).$.subscribe(docs => {
                         if (isMounted) {
@@ -162,7 +158,6 @@ export function useDailyRoundData(viewDate: string) {
             const db = await bootCoreDatabase();
             const round: DailyRound = {
                 id: currentRoundId || uuidv4(),
-                record_type: 'daily_rounds',
                 date: viewDate,
                 shift: roundType,
                 section: activeTab,
@@ -173,7 +168,7 @@ export function useDailyRoundData(viewDate: string) {
                 updated_at: new Date().toISOString(),
                 notes: generalNotes
             };
-            await db.daily_records.upsert(round);
+            await db.daily_rounds.upsert(round);
         } catch (error) {
             console.error('Failed to sign off round:', error);
         } finally {
