@@ -20,7 +20,7 @@ export function useMedicalData() {
 
         subs = [
           // 🚨 Medical Logs
-          db.medical_logs.find().$.subscribe(docs => {
+          db.collections.medical_logs.find().$.subscribe(docs => {
             if (isMounted) {
               const rawData = docs.map(d => d.toJSON() as ClinicalNote);
               const active = rawData.filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
@@ -29,7 +29,7 @@ export function useMedicalData() {
           }),
 
           // 🚨 MAR Charts
-          db.mar_charts.find().$.subscribe(docs => {
+          db.collections.mar_charts.find().$.subscribe(docs => {
             if (isMounted) {
               const rawData = docs.map(d => d.toJSON() as MARChart);
               const active = rawData.filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
@@ -38,7 +38,7 @@ export function useMedicalData() {
           }),
 
           // 🚨 Quarantine
-          db.quarantine_records.find().$.subscribe(docs => {
+          db.collections.quarantine_records.find().$.subscribe(docs => {
             if (isMounted) {
               const rawData = docs.map(d => d.toJSON() as QuarantineRecord);
               const active = rawData.filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
@@ -47,7 +47,7 @@ export function useMedicalData() {
           }),
 
           // 🚨 Animals
-          db.animals.find().$.subscribe(docs => {
+          db.collections.animals.find().$.subscribe(docs => {
             if (isMounted) {
               const rawData = docs.map(d => d.toJSON() as Animal);
               setAnimals(rawData.filter(a => !(a as unknown as { is_deleted?: boolean }).is_deleted).sort((a, b) => (a.name || '').localeCompare(b.name || '')));
@@ -72,47 +72,47 @@ export function useMedicalData() {
   // ... (keep the add/update functions exactly the same as previous)
   const addClinicalNote = async (note: Omit<ClinicalNote, 'id' | 'animal_name'>) => {
     const db = await bootCoreDatabase();
-    const animalDoc = await db.animals.findOne(note.animal_id).exec();
+    const animalDoc = await db.collections.animals.findOne(note.animal_id).exec();
     const newNote = { ...note, id: crypto.randomUUID(), animal_name: animalDoc?.name || 'Unknown', updated_at: new Date().toISOString(), is_deleted: false } as ClinicalNote;
-    await db.medical_logs.upsert(newNote);
+    await db.collections.medical_logs.upsert(newNote);
   };
 
   const updateClinicalNote = async (note: ClinicalNote) => {
     const db = await bootCoreDatabase();
-    await db.medical_logs.upsert({ ...note, updated_at: new Date().toISOString() });
+    await db.collections.medical_logs.upsert({ ...note, updated_at: new Date().toISOString() });
   };
 
   const addMarChart = async (chart: Omit<MARChart, 'id' | 'animal_name' | 'administered_dates' | 'status'>) => {
     const db = await bootCoreDatabase();
-    const animalDoc = await db.animals.findOne(chart.animal_id).exec();
+    const animalDoc = await db.collections.animals.findOne(chart.animal_id).exec();
     const newChart = { ...chart, id: crypto.randomUUID(), animal_name: animalDoc?.name || 'Unknown', administered_dates: [], status: 'Active', updated_at: new Date().toISOString(), is_deleted: false } as MARChart;
-    await db.mar_charts.upsert(newChart);
+    await db.collections.mar_charts.upsert(newChart);
   };
 
   const updateMarChart = async (chart: MARChart) => {
     const db = await bootCoreDatabase();
-    await db.mar_charts.upsert({ ...chart, updated_at: new Date().toISOString() });
+    await db.collections.mar_charts.upsert({ ...chart, updated_at: new Date().toISOString() });
   };
 
   const signOffDose = async (chartId: string, dateIso: string) => {
     const db = await bootCoreDatabase();
-    const chartDoc = await db.mar_charts.findOne(chartId).exec();
+    const chartDoc = await db.collections.mar_charts.findOne(chartId).exec();
     if (chartDoc) {
       const chart = chartDoc.toJSON();
-      await db.mar_charts.upsert({ ...chart, administered_dates: [...chart.administered_dates, dateIso], updated_at: new Date().toISOString() });
+      await db.collections.mar_charts.upsert({ ...chart, administered_dates: [...chart.administered_dates, dateIso], updated_at: new Date().toISOString() });
     }
   };
 
   const addQuarantineRecord = async (record: Omit<QuarantineRecord, 'id' | 'animal_name' | 'status'>) => {
     const db = await bootCoreDatabase();
-    const animalDoc = await db.animals.findOne(record.animal_id).exec();
+    const animalDoc = await db.collections.animals.findOne(record.animal_id).exec();
     const newRecord = { ...record, id: crypto.randomUUID(), animal_name: animalDoc?.name || 'Unknown', status: 'Active', updated_at: new Date().toISOString(), is_deleted: false } as QuarantineRecord;
-    await db.quarantine_records.upsert(newRecord);
+    await db.collections.quarantine_records.upsert(newRecord);
   };
 
   const updateQuarantineRecord = async (record: QuarantineRecord) => {
     const db = await bootCoreDatabase();
-    await db.quarantine_records.upsert({ ...record, updated_at: new Date().toISOString() });
+    await db.collections.quarantine_records.upsert({ ...record, updated_at: new Date().toISOString() });
   };
 
   return { clinicalNotes, marCharts, quarantineRecords, animals, isLoading, addClinicalNote, updateClinicalNote, addMarChart, updateMarChart, signOffDose, addQuarantineRecord, updateQuarantineRecord };

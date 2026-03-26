@@ -18,7 +18,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.daily_logs.find().$.subscribe(docs => {
+        sub = db.collections.daily_logs.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as LogEntry);
             
@@ -65,7 +65,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
       updated_at: new Date().toISOString(),
       is_deleted: false
     };
-    await db.daily_logs.upsert(payload);
+    await db.collections.daily_logs.upsert(payload);
   }, []);
 
   const filteredAnimals = useMemo(() => {

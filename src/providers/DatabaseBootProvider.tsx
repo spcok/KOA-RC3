@@ -19,7 +19,7 @@ export const DatabaseBootProvider: React.FC<Props> = ({ children }) => {
         if (isMounted) setIsBooting(false);
       } catch (err) {
         console.error("Fatal Database Boot Error:", err);
-        if (isMounted) setError(String(err));
+        if (isMounted) setError(err.message || "Unknown Database Error");
       }
     };
     

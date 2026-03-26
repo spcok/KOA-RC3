@@ -18,7 +18,7 @@ export function useAnimalsData() {
         if (!isMounted) return;
 
         // 🚨 Bulletproof Query: Ask for the record type, handle the booleans in-memory
-        sub = db.animals.find({
+        sub = db.collections.animals.find({
           selector: {} 
         }).$.subscribe({
           next: (docs) => {

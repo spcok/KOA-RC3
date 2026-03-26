@@ -132,11 +132,11 @@ export function useSystemHealthData() {
         if (!isMounted) return;
 
         const counts = {
-          animals: await db.animals.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          users: await db.users.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          daily_logs: await db.daily_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          tasks: await db.tasks.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          medical_logs: await db.medical_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length)
+          animals: await db.collections.animals.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
+          users: await db.collections.users.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
+          daily_logs: await db.collections.daily_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
+          tasks: await db.collections.tasks.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
+          medical_logs: await db.collections.medical_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length)
         };
         if (isMounted) setTableCounts(counts);
       } catch (e) {

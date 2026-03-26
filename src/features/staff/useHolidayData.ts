@@ -16,7 +16,7 @@ export function useHolidayData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.holidays.find().$.subscribe(docs => {
+        sub = db.collections.holidays.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as Holiday).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.start_date || 0).getTime() - new Date(a.start_date || 0).getTime());
@@ -46,15 +46,15 @@ export function useHolidayData() {
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as Holiday;
-    await db.holidays.upsert(newHoliday);
+    await db.collections.holidays.upsert(newHoliday);
   };
 
   const deleteHoliday = async (id: string) => {
     const db = await bootCoreDatabase();
-    const holidayDoc = await db.holidays.findOne(id).exec();
+    const holidayDoc = await db.collections.holidays.findOne(id).exec();
     if (holidayDoc) {
       const holiday = holidayDoc.toJSON();
-      await db.holidays.upsert({
+      await db.collections.holidays.upsert({
         ...holiday,
         is_deleted: true,
         updated_at: new Date().toISOString()

@@ -22,7 +22,7 @@ export const useTaskData = () => {
         if (!isMounted) return;
 
         subs = [
-          db.tasks.find().$.subscribe(docs => {
+          db.collections.tasks.find().$.subscribe(docs => {
             if (isMounted) {
               const rawData = docs.map(d => d.toJSON() as Task).filter(d => !d.is_deleted);
               // Sort in memory by date
@@ -33,7 +33,7 @@ export const useTaskData = () => {
             }
           }),
 
-          db.animals.find().$.subscribe(docs => {
+          db.collections.animals.find().$.subscribe(docs => {
             if (isMounted) {
               setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
               setIsLoading(false);

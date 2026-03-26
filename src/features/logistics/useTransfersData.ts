@@ -16,7 +16,7 @@ export function useTransfersData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.external_transfers.find().$.subscribe(docs => {
+        sub = db.collections.external_transfers.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as ExternalTransfer).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
@@ -46,7 +46,7 @@ export function useTransfersData() {
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as ExternalTransfer;
-    await db.external_transfers.upsert(newTransfer);
+    await db.collections.external_transfers.upsert(newTransfer);
   };
 
   return {

@@ -16,13 +16,13 @@ export function useFeedingScheduleData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        const animalsSub = db.animals.find().$.subscribe(docs => {
+        const animalsSub = db.collections.animals.find().$.subscribe(docs => {
           if (isMounted) {
             setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
           }
         });
 
-        const tasksSub = db.tasks.find().$.subscribe(docs => {
+        const tasksSub = db.collections.tasks.find().$.subscribe(docs => {
           if (isMounted) {
             setTasks(docs.map(d => d.toJSON() as Task).filter(d => !d.is_deleted));
             setIsLoading(false);
@@ -47,7 +47,7 @@ export function useFeedingScheduleData() {
   const addTasks = async (newTasks: Task[]) => {
     const db = await bootCoreDatabase();
     for (const task of newTasks) {
-      await db.tasks.upsert({
+      await db.collections.tasks.upsert({
         ...task,
         updated_at: new Date().toISOString(),
         is_deleted: false
@@ -57,10 +57,10 @@ export function useFeedingScheduleData() {
 
   const deleteTask = async (id: string) => {
     const db = await bootCoreDatabase();
-    const taskDoc = await db.tasks.findOne(id).exec();
+    const taskDoc = await db.collections.tasks.findOne(id).exec();
     if (taskDoc) {
       const task = taskDoc.toJSON();
-      await db.tasks.upsert({
+      await db.collections.tasks.upsert({
         ...task,
         is_deleted: true,
         updated_at: new Date().toISOString()

@@ -16,7 +16,7 @@ export function useDirectoryData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.contacts.find().$.subscribe(docs => {
+        sub = db.collections.contacts.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as Contact).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -48,7 +48,7 @@ export function useDirectoryData() {
       updated_at: new Date().toISOString()
     };
     try {
-      await db.contacts.upsert(newContact);
+      await db.collections.contacts.upsert(newContact);
     } catch (err) {
       console.error('Failed to add contact:', err);
     }
@@ -57,7 +57,7 @@ export function useDirectoryData() {
   const updateContact = async (contact: Contact) => {
     const db = await bootCoreDatabase();
     try {
-      await db.contacts.upsert({
+      await db.collections.contacts.upsert({
         ...contact,
         updated_at: new Date().toISOString()
       });
@@ -69,7 +69,7 @@ export function useDirectoryData() {
   const deleteContact = async (id: string) => {
     const db = await bootCoreDatabase();
     try {
-      const doc = await db.contacts.findOne(id).exec();
+      const doc = await db.collections.contacts.findOne(id).exec();
       if (doc) {
         await doc.patch({
           is_deleted: true,

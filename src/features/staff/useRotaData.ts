@@ -16,7 +16,7 @@ export const useRotaData = () => {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.shifts.find().$.subscribe(docs => {
+        sub = db.collections.shifts.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as Shift).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
@@ -79,14 +79,14 @@ export const useRotaData = () => {
     }
 
     for (const s of shiftsToCreate) {
-      await db.shifts.upsert(s);
+      await db.collections.shifts.upsert(s);
     }
   };
 
   const updateShift = async (id: string, updates: Partial<Shift>, updateSeries: boolean = false) => {
     const db = await bootCoreDatabase();
     if (updateSeries && updates.pattern_id) {
-      const seriesShifts = await db.shifts.find({
+      const seriesShifts = await db.collections.shifts.find({
         selector: { 
           pattern_id: { $eq: updates.pattern_id }
         }
@@ -94,7 +94,7 @@ export const useRotaData = () => {
       
       for (const sDoc of seriesShifts) {
         const s = sDoc.toJSON();
-        await db.shifts.upsert({ 
+        await db.collections.shifts.upsert({ 
           ...s,
           ...updates, 
           id: s.id, 
@@ -103,10 +103,10 @@ export const useRotaData = () => {
         });
       }
     } else {
-      const shiftDoc = await db.shifts.findOne(id).exec();
+      const shiftDoc = await db.collections.shifts.findOne(id).exec();
       if (shiftDoc) {
         const s = shiftDoc.toJSON();
-        await db.shifts.upsert({ 
+        await db.collections.shifts.upsert({ 
           ...s,
           ...updates,
           updated_at: new Date().toISOString()
@@ -118,7 +118,7 @@ export const useRotaData = () => {
   const replaceShiftPattern = async (existingShift: Shift, newShiftData: Omit<Shift, 'id' | 'pattern_id'>, repeatDays: number[], weeksToRepeat: number) => {
     const db = await bootCoreDatabase();
     if (existingShift.pattern_id) {
-      const futureShifts = await db.shifts.find({
+      const futureShifts = await db.collections.shifts.find({
         selector: {
           pattern_id: { $eq: existingShift.pattern_id },
           date: { $gte: existingShift.date }
@@ -127,14 +127,14 @@ export const useRotaData = () => {
       
       for (const sDoc of futureShifts) {
         const s = sDoc.toJSON();
-        await db.shifts.upsert({
+        await db.collections.shifts.upsert({
           ...s,
           is_deleted: true,
           updated_at: new Date().toISOString()
         });
       }
     } else {
-      await db.shifts.upsert({
+      await db.collections.shifts.upsert({
         ...existingShift,
         is_deleted: true,
         updated_at: new Date().toISOString()
@@ -146,7 +146,7 @@ export const useRotaData = () => {
   const deleteShift = async (shift: Shift, deleteSeries: boolean = false) => {
     const db = await bootCoreDatabase();
     if (deleteSeries && shift.pattern_id) {
-      const seriesShifts = await db.shifts.find({
+      const seriesShifts = await db.collections.shifts.find({
         selector: {
           pattern_id: { $eq: shift.pattern_id }
         }
@@ -154,14 +154,14 @@ export const useRotaData = () => {
       
       for (const sDoc of seriesShifts) {
         const s = sDoc.toJSON();
-        await db.shifts.upsert({
+        await db.collections.shifts.upsert({
           ...s,
           is_deleted: true,
           updated_at: new Date().toISOString()
         });
       }
     } else {
-      await db.shifts.upsert({
+      await db.collections.shifts.upsert({
         ...shift,
         is_deleted: true,
         updated_at: new Date().toISOString()

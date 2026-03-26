@@ -37,7 +37,7 @@ export function useDailyRoundData(viewDate: string) {
 
                 subs = [
                     // 🚨 Fixed Query
-                    db.animals.find().$.subscribe(docs => {
+                    db.collections.animals.find().$.subscribe(docs => {
                         if (isMounted) {
                             const rawData = docs.map(d => d.toJSON() as Animal);
                             setAllAnimals(rawData.filter(a => !(a as unknown as { is_deleted?: boolean }).is_deleted));
@@ -45,7 +45,7 @@ export function useDailyRoundData(viewDate: string) {
                     }),
 
                     // 🚨 Fixed Query
-                    db.daily_logs.find({
+                    db.collections.daily_logs.find({
                         selector: { 
                             log_date: { $eq: viewDate }
                         }
@@ -57,7 +57,7 @@ export function useDailyRoundData(viewDate: string) {
                     }),
 
                     // 🚨 Fixed Query
-                    db.daily_rounds.find({
+                    db.collections.daily_rounds.find({
                         selector: { 
                             date: { $eq: viewDate }
                         }
@@ -168,7 +168,7 @@ export function useDailyRoundData(viewDate: string) {
                 updated_at: new Date().toISOString(),
                 notes: generalNotes
             };
-            await db.daily_rounds.upsert(round);
+            await db.collections.daily_rounds.upsert(round);
         } catch (error) {
             console.error('Failed to sign off round:', error);
         } finally {

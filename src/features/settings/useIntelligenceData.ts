@@ -16,7 +16,7 @@ export function useIntelligenceData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.animals.find().$.subscribe(docs => {
+        sub = db.collections.animals.find().$.subscribe(docs => {
           if (isMounted) {
             setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
             setIsLoading(false);
@@ -39,7 +39,7 @@ export function useIntelligenceData() {
   const updateAnimal = async (animal: Animal) => {
     try {
       const db = await bootCoreDatabase();
-      await db.animals.upsert({
+      await db.collections.animals.upsert({
         ...animal,
         updated_at: new Date().toISOString()
       });

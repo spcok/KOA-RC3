@@ -16,7 +16,7 @@ export function useTimesheetData() {
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        sub = db.timesheets.find().$.subscribe(docs => {
+        sub = db.collections.timesheets.find().$.subscribe(docs => {
           if (isMounted) {
             const rawData = docs.map(d => d.toJSON() as Timesheet).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
             const sortedData = rawData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
@@ -49,15 +49,15 @@ export function useTimesheetData() {
       updated_at: new Date().toISOString(),
       is_deleted: false
     };
-    await db.timesheets.upsert(newTimesheet);
+    await db.collections.timesheets.upsert(newTimesheet);
   };
 
   const clockOut = async (id: string) => {
     const db = await bootCoreDatabase();
-    const timesheetDoc = await db.timesheets.findOne(id).exec();
+    const timesheetDoc = await db.collections.timesheets.findOne(id).exec();
     if (timesheetDoc) {
       const timesheet = timesheetDoc.toJSON();
-      await db.timesheets.upsert({
+      await db.collections.timesheets.upsert({
         ...timesheet,
         clock_out: new Date().toISOString(),
         status: TimesheetStatus.COMPLETED,
@@ -68,7 +68,7 @@ export function useTimesheetData() {
 
   const getCurrentlyClockedInStaff = async () => {
     const db = await bootCoreDatabase();
-    const active = await db.timesheets.find({
+    const active = await db.collections.timesheets.find({
       selector: { 
         status: { $eq: TimesheetStatus.ACTIVE }
       }
@@ -84,15 +84,15 @@ export function useTimesheetData() {
       updated_at: new Date().toISOString(),
       is_deleted: false
     } as Timesheet;
-    await db.timesheets.upsert(newTimesheet);
+    await db.collections.timesheets.upsert(newTimesheet);
   };
 
   const deleteTimesheet = async (id: string) => {
     const db = await bootCoreDatabase();
-    const timesheetDoc = await db.timesheets.findOne(id).exec();
+    const timesheetDoc = await db.collections.timesheets.findOne(id).exec();
     if (timesheetDoc) {
       const timesheet = timesheetDoc.toJSON();
-      await db.timesheets.upsert({
+      await db.collections.timesheets.upsert({
         ...timesheet,
         is_deleted: true,
         updated_at: new Date().toISOString()

@@ -38,18 +38,18 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
         const db = await bootCoreDatabase();
         if (!isMounted) return;
 
-        const liveSub = db.animals.find().$.subscribe(docs => {
+        const liveSub = db.collections.animals.find().$.subscribe(docs => {
           if (isMounted) {
             setLiveAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
             setIsLoading(false);
           }
         });
 
-        const archivedSub = db.archived_animals.find().$.subscribe(docs => {
+        const archivedSub = db.collections.archived_animals.find().$.subscribe(docs => {
           if (isMounted) setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
         });
 
-        const logsSub = db.daily_logs.find({
+        const logsSub = db.collections.daily_logs.find({
           selector: { log_date: viewDate }
         }).$.subscribe(docs => {
           if (isMounted) setLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
