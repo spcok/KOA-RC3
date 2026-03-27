@@ -30,89 +30,80 @@ const unlockedPermissions = Object.keys(lockedPermissions).reduce((acc, key) => 
 export function usePermissions(): Record<string, boolean | string> & { isLoading: boolean } {
   const { currentUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [permissions, setPermissions] = useState<Record<string, boolean | string>>(() => {
-    const rawRole = currentUser?.role || (currentUser as unknown as { user_metadata?: { role?: string } })?.user_metadata?.role || 'GUEST';
-    const role = String(rawRole).toUpperCase();
-    
-    if (role === 'OWNER' || role === 'ADMIN') {
-      return { 
-        ...unlockedPermissions, role, isAdmin: true, isOwner: role === 'OWNER',
-        isSeniorKeeper: true, isVolunteer: false, isStaff: true
-      };
-    }
-    return { ...lockedPermissions, role };
-  });
+  const [permissions, setPermissions] = useState<Record<string, boolean | string>>({ ...lockedPermissions });
 
   useEffect(() => {
     let isMounted = true;
+    let userSub: any = null;
+    let roleSub: any = null;
 
-    const fetchLivePermissions = async () => {
-      const rawRole = currentUser?.role || (currentUser as unknown as { user_metadata?: { role?: string } })?.user_metadata?.role;
-      if (!rawRole) {
+    const setupReactivePermissions = async () => {
+      if (!currentUser?.id) {
           if (isMounted) setIsLoading(false);
-          return;
-      }
-
-      const currentRole = String(rawRole).toUpperCase();
-      
-      if (currentRole === 'OWNER' || currentRole === 'ADMIN') {
-          if (isMounted) {
-            setPermissions({ 
-              ...unlockedPermissions, 
-              role: currentRole, 
-              isAdmin: true, 
-              isOwner: currentRole === 'OWNER',
-              isSeniorKeeper: true, 
-              isVolunteer: false, 
-              isStaff: true 
-            });
-            setIsLoading(false);
-          }
           return;
       }
 
       try {
         const db = await bootCoreDatabase();
-        if (!db.collections.role_permissions) {
-          throw new Error('role_permissions collection not found');
+        
+        if (!db || !db.collections || !db.collections.users || !db.collections.role_permissions) {
+          console.warn("⚠️ [Permissions] Collections not ready yet. Waiting...");
+          if (isMounted) setIsLoading(false);
+          return;
         }
 
-        const roleDoc = await db.collections.role_permissions
-          .findOne({ selector: { role: currentRole } })
-          .exec();
+        // 1. Listen to the local 'users' table. When the sync finishes, this fires again automatically!
+        userSub = db.collections.users.findOne({ selector: { id: currentUser.id } }).$.subscribe((userDoc: any) => {
+          
+          // Pull role from local DB first, fallback to the Supabase auth token, or default to GUEST
+          const rawRole = userDoc?.get('role') || currentUser?.role || 'GUEST';
+          const currentRole = String(rawRole).toUpperCase();
 
-        if (isMounted) {
-          if (roleDoc) {
-            const roleData = roleDoc.toJSON();
-            // Merge with lockedPermissions baseline
-            const merged = { 
-              ...lockedPermissions, 
-              ...roleData, 
-              role: currentRole,
-              // Ensure core role flags are set based on the role name if not in DB
-              isAdmin: currentRole === 'ADMIN',
-              isOwner: currentRole === 'OWNER'
-            };
-            setPermissions(merged);
-          } else {
-            console.warn(`⚠️ [Permissions] Role ${currentRole} not found in DB. Defaulting to locked.`);
-            setPermissions({ ...lockedPermissions, role: currentRole });
+          // Fast-track System Owners & Admins
+          if (currentRole === 'OWNER' || currentRole === 'ADMIN') {
+              if (isMounted) {
+                setPermissions({ 
+                  ...unlockedPermissions, role: currentRole, isAdmin: true, isOwner: currentRole === 'OWNER',
+                  isSeniorKeeper: true, isVolunteer: false, isStaff: true
+                });
+                setIsLoading(false);
+              }
+              return;
           }
-          setIsLoading(false);
-        }
+
+          // 2. Listen to the role_permissions table based on the discovered role
+          if (roleSub) roleSub.unsubscribe(); // Clean up if the role upgrades during sync
+          
+          roleSub = db.collections.role_permissions.findOne({ selector: { id: currentRole.toLowerCase() } }).$.subscribe((roleDoc: any) => {
+            if (isMounted) {
+              if (roleDoc) {
+                console.log(`🔓 [Permissions] Live sync unlocked role: ${currentRole}`);
+                setPermissions({
+                  ...lockedPermissions,
+                  ...roleDoc.toJSON(),
+                  role: currentRole
+                });
+              } else {
+                console.warn(`⚠️ [Permissions] Role ${currentRole} not found yet. Waiting for sync...`);
+                setPermissions({ ...lockedPermissions, role: currentRole });
+              }
+              setIsLoading(false);
+            }
+          });
+        });
+
       } catch (error) {
-        console.error('❌ [Permissions] Failed to sync:', error);
-        if (isMounted) {
-          setPermissions({ ...lockedPermissions, role: currentRole });
-          setIsLoading(false);
-        }
+        console.error('❌ [Permissions] Reactive sync failed:', error);
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    fetchLivePermissions();
+    setupReactivePermissions();
+
     return () => {
       isMounted = false;
+      if (userSub) userSub.unsubscribe();
+      if (roleSub) roleSub.unsubscribe();
     };
   }, [currentUser]);
 
