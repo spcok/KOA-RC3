@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { bootCoreDatabase } from '../lib/bootCoreDatabase';
 
 const lockedPermissions = {
   isAdmin: false, isOwner: false, isSeniorKeeper: false, isVolunteer: false, isStaff: false,
@@ -28,9 +29,9 @@ const unlockedPermissions = Object.keys(lockedPermissions).reduce((acc, key) => 
 
 export function usePermissions(): Record<string, boolean | string> & { isLoading: boolean } {
   const { currentUser } = useAuthStore();
-  const [isLoading, setIsLoading] = useState(true); // 🚨 NEW: Loading State
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [permissions] = useState<Record<string, boolean | string>>(() => {
+  const [permissions, setPermissions] = useState<Record<string, boolean | string>>(() => {
     const rawRole = currentUser?.role || (currentUser as unknown as { user_metadata?: { role?: string } })?.user_metadata?.role || 'GUEST';
     const role = String(rawRole).toUpperCase();
     
@@ -45,9 +46,8 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
 
   useEffect(() => {
     let isMounted = true;
-    const subscription: { unsubscribe: () => void } | null = null;
 
-    const initializePermissions = async () => {
+    const fetchLivePermissions = async () => {
       const rawRole = currentUser?.role || (currentUser as unknown as { user_metadata?: { role?: string } })?.user_metadata?.role;
       if (!rawRole) {
           if (isMounted) setIsLoading(false);
@@ -57,27 +57,64 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
       const currentRole = String(rawRole).toUpperCase();
       
       if (currentRole === 'OWNER' || currentRole === 'ADMIN') {
-          if (isMounted) setIsLoading(false); // 🚨 Unlock instantly
+          if (isMounted) {
+            setPermissions({ 
+              ...unlockedPermissions, 
+              role: currentRole, 
+              isAdmin: true, 
+              isOwner: currentRole === 'OWNER',
+              isSeniorKeeper: true, 
+              isVolunteer: false, 
+              isStaff: true 
+            });
+            setIsLoading(false);
+          }
           return;
       }
 
       try {
-        console.log("☢️ [Zero Dawn] Permissions sync is neutralized.");
+        const db = await bootCoreDatabase();
+        if (!db.collections.role_permissions) {
+          throw new Error('role_permissions collection not found');
+        }
+
+        const roleDoc = await db.collections.role_permissions
+          .findOne({ selector: { role: currentRole } })
+          .exec();
+
         if (isMounted) {
+          if (roleDoc) {
+            const roleData = roleDoc.toJSON();
+            // Merge with lockedPermissions baseline
+            const merged = { 
+              ...lockedPermissions, 
+              ...roleData, 
+              role: currentRole,
+              // Ensure core role flags are set based on the role name if not in DB
+              isAdmin: currentRole === 'ADMIN',
+              isOwner: currentRole === 'OWNER'
+            };
+            setPermissions(merged);
+          } else {
+            console.warn(`⚠️ [Permissions] Role ${currentRole} not found in DB. Defaulting to locked.`);
+            setPermissions({ ...lockedPermissions, role: currentRole });
+          }
           setIsLoading(false);
         }
       } catch (error) {
         console.error('❌ [Permissions] Failed to sync:', error);
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setPermissions({ ...lockedPermissions, role: currentRole });
+          setIsLoading(false);
+        }
       }
     };
 
-    initializePermissions();
+    fetchLivePermissions();
     return () => {
       isMounted = false;
-      if (subscription) subscription.unsubscribe();
     };
   }, [currentUser]);
 
-  return { ...permissions, isLoading }; // 🚨 Export the loading state
+  return { ...permissions, isLoading };
 }

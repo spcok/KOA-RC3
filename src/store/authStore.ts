@@ -38,8 +38,19 @@ export const useAuthStore = create<AuthState>((set) => ({
            3000, 
            "Session check timed out"
         );
-        if (session) {
-          set({ session, isLoading: false });
+        if (session && session.user) {
+          const user = session.user;
+          set({ 
+            session,
+            currentUser: {
+              id: user.id,
+              email: user.email || '',
+              name: user.user_metadata?.name || user.email || 'Unknown User',
+              role: user.user_metadata?.role || 'GUEST',
+              initials: (user.user_metadata?.name || user.email || '??').substring(0, 2).toUpperCase(),
+            },
+            isLoading: false 
+          });
           return;
         }
       }
