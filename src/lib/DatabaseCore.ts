@@ -1,13 +1,12 @@
-import { createRxDatabase, RxDatabase, addRxPlugin } from 'rxdb';
-import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
+import { createRxDatabase, RxDatabase } from 'rxdb';
+import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
+
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
 
-if (import.meta.env.DEV) {
-  addRxPlugin(RxDBDevModePlugin);
-}
+
 
 interface KoaWindow extends Window {
   __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
@@ -57,7 +56,9 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
     try {
       const db = await createRxDatabase({
         name: 'koa_manager_invincible_v1', 
-        storage: getRxStorageDexie(),
+        storage: wrappedValidateAjvStorage({ 
+          storage: getRxStorageDexie() 
+        }),
         ignoreDuplicate: import.meta.env.DEV
       });
 
