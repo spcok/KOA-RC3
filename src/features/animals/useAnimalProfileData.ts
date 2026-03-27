@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Animal, ClinicalNote, LogEntry, Task } from '../../types';
+import { Subscription } from 'rxjs';
 
 export function useAnimalProfileData(animalId: string | undefined) {
   const [animal, setAnimal] = useState<Animal | null>(null);
@@ -15,7 +16,7 @@ export function useAnimalProfileData(animalId: string | undefined) {
     }
 
     let isMounted = true;
-    let subs: Subscription[] = [];
+    const subs: Subscription[] = [];
 
     const loadData = async () => {
       try {

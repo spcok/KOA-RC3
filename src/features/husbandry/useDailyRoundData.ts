@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AnimalCategory, DailyRound, Animal, LogType, LogEntry } from '../../types';
+import { Subscription } from 'rxjs';
 
 interface AnimalCheckState {
     isAlive?: boolean;
@@ -25,7 +26,7 @@ export function useDailyRoundData(viewDate: string) {
 
     useEffect(() => {
         let isMounted = true;
-        let subs: Subscription[] = [];
+        const subs: Subscription[] = [];
 
         const loadData = async () => {
             try {
@@ -52,7 +53,6 @@ export function useDailyRoundData(viewDate: string) {
 
     // ... Keep all standard functions identical to your existing file down to the return statement ...
     const currentRound = useMemo(() => liveRounds.find(r => r.shift === roundType && r.section === activeTab), [liveRounds, roundType, activeTab]);
-    const currentRoundId = currentRound?.id;
     const isPastRound = currentRound?.status?.toLowerCase() === 'completed';
 
     useEffect(() => {

@@ -16,8 +16,8 @@ export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ ch
            startCoreSync().catch(e => console.warn(e));
         }
         if (isMounted) setIsBooting(false);
-      } catch (err: any) {
-        if (isMounted) setError(err.message || "Failed to initialize local database.");
+      } catch (err: unknown) {
+        if (isMounted) setError(err instanceof Error ? err.message : "Failed to initialize local database.");
       }
     };
     

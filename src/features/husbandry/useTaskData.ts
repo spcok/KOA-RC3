@@ -13,7 +13,7 @@ export const useTaskData = () => {
 
   useEffect(() => {
     let isMounted = true;
-    let subs: { unsubscribe: () => void }[] = [];
+    const subs: { unsubscribe: () => void }[] = [];
 
     const loadData = async () => {
       try {

@@ -30,7 +30,7 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
   const { currentUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true); // 🚨 NEW: Loading State
   
-  const [permissions, setPermissions] = useState<Record<string, boolean | string>>(() => {
+  const [permissions] = useState<Record<string, boolean | string>>(() => {
     const rawRole = currentUser?.role || (currentUser as unknown as { user_metadata?: { role?: string } })?.user_metadata?.role || 'GUEST';
     const role = String(rawRole).toUpperCase();
     
@@ -45,7 +45,7 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
 
   useEffect(() => {
     let isMounted = true;
-    let subscription: { unsubscribe: () => void } | null = null;
+    const subscription: { unsubscribe: () => void } | null = null;
 
     const initializePermissions = async () => {
       const rawRole = currentUser?.role || (currentUser as unknown as { user_metadata?: { role?: string } })?.user_metadata?.role;

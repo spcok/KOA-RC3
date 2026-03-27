@@ -7,7 +7,7 @@ export function useZLADocsData() {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: { unsubscribe: () => void } | null = null;
+    const sub: { unsubscribe: () => void } | null = null;
 
     const loadDocs = async () => {
       try {

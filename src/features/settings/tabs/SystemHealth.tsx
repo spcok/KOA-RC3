@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { PwaDiagnostics } from '../../../components/ui/PwaDiagnostics';
 import { 
-  Activity, HardDrive, AlertTriangle, 
-  CheckCircle2, Info,
+  Activity, HardDrive, 
+  CheckCircle2, 
   Download, Trash2, ShieldX
 } from 'lucide-react';
 

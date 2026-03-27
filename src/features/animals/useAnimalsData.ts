@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Animal } from '../../types';
+import { Subscription } from 'rxjs';
 
 export function useAnimalsData() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -8,7 +9,7 @@ export function useAnimalsData() {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: Subscription | undefined;
+    const sub: Subscription | null = null;
 
     const loadAnimals = async () => {
       try {

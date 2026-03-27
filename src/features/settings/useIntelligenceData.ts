@@ -7,7 +7,7 @@ export function useIntelligenceData() {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: { unsubscribe: () => void } | null = null;
+    const sub: { unsubscribe: () => void } | null = null;
 
     const loadAnimals = async () => {
       try {
@@ -30,12 +30,7 @@ export function useIntelligenceData() {
     };
   }, []);
 
-  const updateAnimal = async (animal: Animal) => {
-    console.log("☢️ [Zero Dawn] Animal update is neutralized.", animal);
-    alert("Database engine is neutralized. Animal cannot be updated.");
-  };
-
-  const runIUCNScan = async (onProgress: (progress: number) => void) => {
+  const runIUCNScan = async () => {
     console.log("☢️ [Zero Dawn] IUCN Scan is neutralized.");
     alert("Database engine is neutralized. Scan cannot proceed.");
   };

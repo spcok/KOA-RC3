@@ -3,10 +3,10 @@ import { AnimalCategory, UserRole } from '../types';
 import { AppContext, AppContextType } from './Context';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [db, setDb] = React.useState<any>(null);
+  const [db, setDb] = React.useState<unknown>(null);
 
   React.useEffect(() => {
-    setDb({} as any);
+    setDb({});
   }, []);
 
   const activeShift = null;

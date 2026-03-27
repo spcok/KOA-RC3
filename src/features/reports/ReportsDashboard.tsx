@@ -13,8 +13,7 @@ import {
   Eye,
   Wrench
 } from 'lucide-react';
-import { Animal, UserRole, Shift } from '../../types';
-import { useAuthStore } from '../../store/authStore';
+import { Animal, UserRole } from '../../types';
 
 interface ReportDefinition {
   id: string;
@@ -149,13 +148,12 @@ export default function ReportsDashboard() {
   const [rotaPeriod, setRotaPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [archivedAnimals, setArchivedAnimals] = useState<Animal[]>([]);
-  const [rawShifts, setRawShifts] = useState<Shift[]>([]);
 
   useEffect(() => {
     let isMounted = true;
-    let animalsSub: { unsubscribe: () => void } | null = null;
-    let archivedSub: { unsubscribe: () => void } | null = null;
-    let shiftsSub: { unsubscribe: () => void } | null = null;
+    const animalsSub: { unsubscribe: () => void } | null = null;
+    const archivedSub: { unsubscribe: () => void } | null = null;
+    const shiftsSub: { unsubscribe: () => void } | null = null;
 
     const loadData = async () => {
       try {
@@ -163,7 +161,6 @@ export default function ReportsDashboard() {
         if (isMounted) {
           setAnimals([]);
           setArchivedAnimals([]);
-          setRawShifts([]);
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
@@ -199,8 +196,6 @@ export default function ReportsDashboard() {
     }
   }, [startDate, rotaPeriod, activeReportId]);
   
-  const { currentUser } = useAuthStore();
-
   const uniqueSections = activeReportId === 'staff_rota'
     ? Object.values(UserRole)
     : Array.from(new Set((animals || []).map(a => (a as unknown as { section?: string, category?: string }).section || a.category).filter(Boolean))).sort();

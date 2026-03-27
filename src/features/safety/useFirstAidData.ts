@@ -7,7 +7,7 @@ export function useFirstAidData() {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: { unsubscribe: () => void } | null = null;
+    const sub: { unsubscribe: () => void } | null = null;
 
     const loadData = async () => {
       try {

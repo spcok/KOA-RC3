@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { X, Check, Camera, Loader2, Zap, Shield, History, Info, Globe, Skull, Users, Thermometer, Scale } from 'lucide-react';
-import { Animal, AnimalCategory, HazardRating, ConservationStatus, EntityType, MovementType, InternalMovement, ExternalTransfer, TransferType, TransferStatus } from '../../types';
+import { Animal, AnimalCategory, HazardRating, ConservationStatus, EntityType } from '../../types';
 import { useAnimalForm } from './useAnimalForm';
 import { getAnimalIntelligence } from '../../services/geminiService';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
@@ -9,7 +9,7 @@ import { useOperationalLists } from '../../hooks/useOperationalLists';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '../../utils/cropImage';
 import { queueFileUpload } from '../../lib/storageEngine';
-import { useAuthStore } from '../../store/authStore';
+import { Subscription } from 'rxjs';
 
 interface AnimalFormModalProps {
   isOpen: boolean;
@@ -26,7 +26,6 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
 
   const { register, watch, setValue, getValues } = form;
   const { locations } = useOperationalLists();
-  const { currentUser } = useAuthStore();
 
   // Cropper State
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -42,8 +41,8 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
 
   useEffect(() => {
     let isMounted = true;
-    let parentMobsSub: Subscription;
-    let linkedChildrenSub: Subscription;
+    const parentMobsSub: Subscription | null = null;
+    const linkedChildrenSub: Subscription | null = null;
 
     const loadData = async () => {
       try {

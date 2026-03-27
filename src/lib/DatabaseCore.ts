@@ -1,8 +1,13 @@
-import { createRxDatabase, RxDatabase, RxJsonSchema } from 'rxdb';
+import { createRxDatabase, RxDatabase, addRxPlugin } from 'rxdb';
+import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
+
+if (import.meta.env.DEV) {
+  addRxPlugin(RxDBDevModePlugin);
+}
 
 interface KoaWindow extends Window {
   __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
@@ -19,7 +24,8 @@ const SYNC_TABLES = [
 ];
 
 // The Immortal Schema: Blindly accepts all columns from Supabase
-const universalSchema: RxJsonSchema<Record<string, unknown>> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const universalSchema: any = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
@@ -35,6 +41,7 @@ const universalSchema: RxJsonSchema<Record<string, unknown>> = {
 const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   acc[table] = { schema: universalSchema };
   return acc;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 }, {} as Record<string, any>);
 
 export const bootCoreDatabase = async (): Promise<RxDatabase> => {
@@ -49,17 +56,29 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
   koaWindow.__KOA_DB_PROMISE = (async () => {
     try {
       const db = await createRxDatabase({
-        name: 'koa_manager_pristine_v1', 
-        storage: getRxStorageDexie()
+        name: 'koa_manager_invincible_v1', 
+        storage: getRxStorageDexie(),
+        ignoreDuplicate: import.meta.env.DEV
       });
 
-      // Safe lock: Only add collections if the DB is truly empty
-      if (Object.keys(db.collections).length === 0) {
-        await db.addCollections(appSchemas);
+      if (!db.collections.animals) {
+        try {
+          await db.addCollections(appSchemas);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          if (err.code === 'COL23' || err.message?.includes('COL23')) {
+            console.log("🛡️ [Core DB] HMR Collision detected. Polling for background build...");
+            while (!db.collections.animals) {
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+          } else {
+            throw err;
+          }
+        }
       }
 
       return db;
-    } catch (error: any) {
+    } catch (error: unknown) {
       koaWindow.__KOA_DB_PROMISE = null;
       throw error;
     }
@@ -90,7 +109,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection: db.collections[table],
-        replicationIdentifier: `pristine_${table}_sync`,
+        replicationIdentifier: `invincible_${table}_sync`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',

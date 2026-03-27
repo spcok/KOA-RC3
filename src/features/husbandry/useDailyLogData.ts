@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { LogEntry, LogType } from '../../types';
 import { useAnimalsData } from '../animals/useAnimalsData';
+import { Subscription } from 'rxjs';
 
 export const useDailyLogData = (viewDate: string, activeCategory: string, animalId?: string) => {
   const { animals, isLoading: animalsLoading } = useAnimalsData();
@@ -9,7 +10,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
 
   useEffect(() => {
     let isMounted = true;
-    let sub: Subscription | undefined;
+    const sub: Subscription | null = null;
 
     const loadLogs = async () => {
       try {

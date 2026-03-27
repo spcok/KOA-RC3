@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Animal, AnimalCategory, LogType, LogEntry } from '../../types';
-import { useTaskData } from '../husbandry/useTaskData';
+import { Animal, AnimalCategory, LogType, LogEntry, Task } from '../../types';
+import { bootCoreDatabase } from '../../lib/DatabaseCore';
 
 export interface EnhancedAnimal extends Animal {
   todayWeight?: LogEntry;
@@ -26,19 +26,37 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
   const [liveAnimals, setLiveAnimals] = useState<Animal[]>([]);
   const [archivedAnimals, setArchivedAnimals] = useState<Animal[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
-    let subs: { unsubscribe: () => void }[] = [];
 
     const loadData = async () => {
       try {
-        console.log("☢️ [Zero Dawn] Dashboard data loading is neutralized.");
+        setIsLoading(true);
+        const db = await bootCoreDatabase();
+        
+        const [animalsList, archivedList, logsList, tasksList] = await Promise.all([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (db as any).animals.find().exec(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (db as any).archived_animals.find().exec(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (db as any).daily_logs.find().exec(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (db as any).tasks.find().exec()
+        ]);
+
         if (isMounted) {
-          setLiveAnimals([]);
-          setArchivedAnimals([]);
-          setLogs([]);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setLiveAnimals(animalsList.map((doc: any) => doc.toJSON() as Animal));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setArchivedAnimals(archivedList.map((doc: any) => doc.toJSON() as Animal));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setLogs(logsList.map((doc: any) => doc.toJSON() as LogEntry));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setTasks(tasksList.map((doc: any) => doc.toJSON() as Task));
           setIsLoading(false);
         }
       } catch (err) {
@@ -51,17 +69,14 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
 
     return () => {
       isMounted = false;
-      subs.forEach(sub => sub.unsubscribe());
     };
   }, [viewDate]);
 
-  const allLogs = logs; // Simplified as per previous redundancy
+  const allLogs = logs;
   
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('alpha-asc');
   const [isOrderLocked, setIsOrderLocked] = useState(false);
-
-  const { tasks } = useTaskData();
 
   const animalStats = useMemo(() => {
     let filtered = liveAnimals || [];

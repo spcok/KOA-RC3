@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import { OrgProfile, User, Shift } from '../types';
 export interface AppContextType {
-  db: any;
+  db: unknown;
   foodOptions: string[];
   feedMethods: Record<string, string[]>;
   eventTypes: string[];

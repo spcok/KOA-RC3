@@ -1,7 +1,5 @@
-import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
-import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 // PWA Event Trap - Capture before React mounts to eliminate race conditions
@@ -30,9 +28,5 @@ window.addEventListener('unhandledrejection', function (event) {
 // We are now implementing a native Service Worker
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
+  <App />
 );

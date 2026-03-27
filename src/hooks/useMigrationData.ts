@@ -1,10 +1,4 @@
 import { useState } from 'react';
-import { 
-  AnimalCategory, 
-  HazardRating,
-  ConservationStatus,
-  EntityType
-} from '../types';
 
 // Define Legacy Interfaces for Type Safety
 interface LegacyLog {
@@ -118,77 +112,3 @@ export const useMigrationData = () => {
     }
   };
 };
-
-// --- Helper Mappers ---
-function chunkArray<T>(array: T[], size: number): T[][] {
-  return Array.from({ length: Math.ceil(array.length / size) }, (_, i) =>
-    array.slice(i * size, i * size + size)
-  );
-}
-
-function mapCategory(cat: string): AnimalCategory {
-  const upper = (cat || '').toUpperCase();
-  if (upper.includes('OWL')) return AnimalCategory.OWLS;
-  if (upper.includes('RAPTOR') || upper.includes('FALCON') || upper.includes('HAWK') || upper.includes('EAGLE') || upper.includes('BIRD OF PREY')) return AnimalCategory.RAPTORS;
-  if (upper.includes('MAMMAL')) return AnimalCategory.MAMMALS;
-  if (upper.includes('REPTILE')) return AnimalCategory.REPTILES;
-  if (upper.includes('INVERT') || upper.includes('BUG') || upper.includes('SPIDER')) return AnimalCategory.INVERTEBRATES;
-  if (upper.includes('AMPHIBIAN') || upper.includes('FROG') || upper.includes('TOAD')) return AnimalCategory.AMPHIBIANS;
-  if (upper.includes('EXOTIC')) return AnimalCategory.EXOTICS;
-  return AnimalCategory.ALL; // Default fallback
-}
-
-function mapHazardRating(rating: string | undefined): HazardRating {
-  const upper = (rating || '').toUpperCase();
-  if (upper === 'HIGH') return HazardRating.HIGH;
-  if (upper === 'LOW') return HazardRating.LOW;
-  return HazardRating.MEDIUM;
-}
-
-function mapRedListStatus(status: string | undefined): ConservationStatus {
-  const s = (status || '').toUpperCase();
-  if (s === 'NE') return ConservationStatus.NE;
-  if (s === 'DD') return ConservationStatus.DD;
-  if (s === 'LC') return ConservationStatus.LC;
-  if (s === 'NT') return ConservationStatus.NT;
-  if (s === 'VU') return ConservationStatus.VU;
-  if (s === 'EN') return ConservationStatus.EN;
-  if (s === 'CR') return ConservationStatus.CR;
-  if (s === 'EW') return ConservationStatus.EW;
-  if (s === 'EX') return ConservationStatus.EX;
-  return ConservationStatus.NE;
-}
-
-function mapWeightUnit(unit: string): 'g' | 'oz' | 'lbs_oz' | 'kg' {
-  if (unit === 'oz') return 'oz';
-  if (unit === 'kg') return 'kg';
-  return 'g';
-}
-
-function mapSex(sex: string): 'Male' | 'Female' | 'Unknown' {
-  const s = (sex || '').toLowerCase();
-  if (s === 'male' || s === 'm') return 'Male';
-  if (s === 'female' || s === 'f') return 'Female';
-  return 'Unknown';
-}
-
-function mapMovementType(type: string | undefined): MovementType {
-  const t = (type || '').toLowerCase();
-  if (t.includes('acquis')) return MovementType.ACQUISITION;
-  if (t.includes('disp')) return MovementType.DISPOSITION;
-  return MovementType.TRANSFER;
-}
-
-function mapLogType(type: string): LogType {
-  const t = (type || '').toLowerCase();
-  if (t.includes('weight')) return LogType.WEIGHT;
-  if (t.includes('feed') || t.includes('diet')) return LogType.FEED;
-  if (t.includes('train') || t.includes('flight')) return LogType.TRAINING;
-  if (t.includes('medic') || t.includes('health') || t.includes('vet')) return LogType.HEALTH;
-  if (t.includes('temp')) return LogType.TEMPERATURE;
-  if (t.includes('mist') || t.includes('spray')) return LogType.MISTING;
-  if (t.includes('water')) return LogType.WATER;
-  if (t.includes('event')) return LogType.EVENT;
-  if (t.includes('husbandry') || t.includes('daily') || t.includes('clean')) return LogType.GENERAL;
-  return LogType.GENERAL;
-}

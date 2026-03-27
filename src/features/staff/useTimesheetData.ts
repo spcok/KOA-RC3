@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Timesheet, TimesheetStatus } from '../../types';
+import { Timesheet } from '../../types';
 
 export function useTimesheetData() {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
@@ -7,7 +7,7 @@ export function useTimesheetData() {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: { unsubscribe: () => void } | null = null;
+    const sub: { unsubscribe: () => void } | null = null;
 
     const loadData = async () => {
       try {

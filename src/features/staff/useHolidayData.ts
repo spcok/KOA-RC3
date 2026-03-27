@@ -7,7 +7,7 @@ export function useHolidayData() {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: { unsubscribe: () => void } | null = null;
+    const sub: { unsubscribe: () => void } | null = null;
 
     const loadData = async () => {
       try {

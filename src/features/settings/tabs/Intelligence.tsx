@@ -11,9 +11,7 @@ const Intelligence: React.FC = () => {
     setIsScanning(true);
     setScanProgress(0);
     
-    await runIUCNScan((progress) => {
-      setScanProgress(progress);
-    });
+    await runIUCNScan();
     
     setIsScanning(false);
     setScanProgress(100);
