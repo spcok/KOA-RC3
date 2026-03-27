@@ -1,14 +1,6 @@
 import { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { bootCoreDatabase } from '../lib/DatabaseCore';
 import { 
-  Animal, 
   AnimalCategory, 
-  LogEntry, 
-  LogType, 
-  InternalMovement, 
-  MovementType, 
-  ClinicalNote,
   HazardRating,
   ConservationStatus,
   EntityType
@@ -101,124 +93,8 @@ export const useMigrationData = () => {
     setError(null);
 
     try {
-      const db = await bootCoreDatabase();
-      const animalsToImport: Animal[] = [];
-      const logsToImport: LogEntry[] = [];
-      const movementsToImport: InternalMovement[] = [];
-      const medicalToImport: ClinicalNote[] = [];
-
-      // Process Data
-      previewData.animals.forEach((legacyAnimal) => {
-        const newAnimalId = uuidv4();
-
-        // Map Animal
-        const animal: Animal = {
-          id: newAnimalId,
-          name: legacyAnimal.name || 'Unknown',
-          species: legacyAnimal.species || 'Unknown',
-          latin_name: legacyAnimal.latinName || undefined,
-          category: mapCategory(legacyAnimal.category),
-          location: 'Main Aviary',
-          image_url: legacyAnimal.imageUrl || undefined,
-          hazard_rating: mapHazardRating(legacyAnimal.hazardRating),
-          is_venomous: false,
-          weight_unit: mapWeightUnit(legacyAnimal.weightUnit),
-          dob: legacyAnimal.dob === "" ? undefined : legacyAnimal.dob,
-          is_dob_unknown: legacyAnimal.dob === "",
-          sex: mapSex(legacyAnimal.sex),
-          entity_type: legacyAnimal.isGroup ? EntityType.GROUP : EntityType.INDIVIDUAL,
-          has_no_id: !!legacyAnimal.hasNoId,
-          origin: legacyAnimal.origin || undefined,
-          acquisition_date: legacyAnimal.arrivalDate || new Date().toISOString(),
-          red_list_status: mapRedListStatus(legacyAnimal.redListStatus),
-          special_requirements: legacyAnimal.specialRequirements || undefined,
-          archived: false,
-          display_order: 0
-        };
-        animalsToImport.push(animal);
-
-        // Map Logs
-        if (Array.isArray(legacyAnimal.logs)) {
-          legacyAnimal.logs.forEach(legacyLog => {
-            const newLogId = uuidv4();
-            const rawDate = legacyLog.date || new Date().toISOString();
-            const logDate = rawDate.split('T')[0]; // Strips time and standardizes to YYYY-MM-DD
-            const userInitials = legacyLog.user || 'SYS';
-            const logTypeUpper = (legacyLog.type || '').toUpperCase();
-
-            switch (logTypeUpper) {
-              case 'MOVEMENT':
-              case 'TRANSFER':
-                movementsToImport.push({
-                  id: newLogId,
-                  animal_id: newAnimalId,
-                  animal_name: animal.name,
-                  log_date: logDate,
-                  movement_type: mapMovementType(legacyLog.movementType),
-                  source_location: legacyLog.source || 'Unknown',
-                  destination_location: legacyLog.destination || 'Unknown',
-                  notes: legacyLog.notes,
-                  created_by: userInitials
-                });
-                break;
-              case 'MEDICAL':
-              case 'VET':
-              case 'HEALTH':
-                medicalToImport.push({
-                  id: newLogId,
-                  animal_id: newAnimalId,
-                  animal_name: animal.name,
-                  date: logDate,
-                  note_type: 'General',
-                  note_text: legacyLog.notes || legacyLog.value || legacyLog.treatment || 'Medical entry',
-                  staff_initials: userInitials
-                });
-                break;
-              default:
-                logsToImport.push({
-                  id: newLogId,
-                  animal_id: newAnimalId,
-                  log_type: mapLogType(legacyLog.type),
-                  log_date: logDate,
-                  value: legacyLog.value || legacyLog.weight || '',
-                  notes: legacyLog.notes,
-                  user_initials: userInitials,
-                  created_at: new Date().toISOString(),
-                  created_by: userInitials
-                });
-                break;
-            }
-          });
-        }
-      });
-
-      const allData: { table: string, data: (Animal | LogEntry | InternalMovement | ClinicalNote)[], chunkSize: number }[] = [
-        { table: 'animals', data: animalsToImport, chunkSize: 50 },
-        { table: 'daily_logs', data: logsToImport, chunkSize: 250 },
-        { table: 'internal_movements', data: movementsToImport, chunkSize: 250 },
-        { table: 'medical_logs', data: medicalToImport, chunkSize: 250 }
-      ];
-      
-      let totalItems = 0;
-      allData.forEach(d => totalItems += d.data.length);
-      let processedItems = 0;
-      
-      for (const item of allData) {
-        const chunks = chunkArray(item.data, item.chunkSize);
-        for (const chunk of chunks) {
-          try {
-            if (db && db.collections[item.table]) {
-              await db.collections[item.table].bulkInsert(chunk);
-            }
-          } catch (err) {
-            console.error(`[MIGRATION] Error importing chunk into ${item.table}:`, err);
-            setError(`Some items failed to sync to RxDB for ${item.table}.`);
-          }
-          processedItems += chunk.length;
-          setProgress((processedItems / totalItems) * 100);
-        }
-      }
-
+      console.log("☢️ [Zero Dawn] Migration engine is neutralized.");
+      alert("Database engine is neutralized. Migration cannot proceed.");
       setPreviewData(null); // Clear preview on success
     } catch (err) {
       console.error("Migration failed:", err);

@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { User, RolePermissionConfig } from '../../types';
-import { supabase } from '../../lib/supabase';
 
 export function useUsersData() {
   const [users, setUsers] = useState<User[]>([]);
@@ -18,30 +16,12 @@ export function useUsersData() {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        const usersSub = db.collections.users.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as unknown as User).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
-            const sortedData = rawData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            setUsers(sortedData);
-            setIsLoading(false);
-          }
-        });
-
-        const rolesSub = db.collections.role_permissions.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rolesData = docs.map(d => d.toJSON() as unknown as RolePermissionConfig).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
-            const roleOrder = ['VOLUNTEER', 'KEEPER', 'SENIOR_KEEPER', 'ADMIN', 'OWNER'];
-            const sortedRoles = rolesData.sort((a, b) => 
-              roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role)
-            );
-            setRolePermissions(sortedRoles);
-          }
-        });
-
-        subs = [usersSub, rolesSub];
+        console.log("☢️ [Zero Dawn] Users data loading is neutralized.");
+        if (isMounted) {
+          setUsers([]);
+          setRolePermissions([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load users data:', err);
         if (isMounted) setIsLoading(false);
@@ -58,49 +38,18 @@ export function useUsersData() {
 
   // --- SECURE USER DELETION PIPELINE ---
   const deleteUser = async (id: string) => {
-    if (!navigator.onLine) throw new Error("You must be online to delete a user.");
-    
-    // Invoke the secure Edge Function to destroy the Auth login and Database profile
-    const { data, error } = await supabase.functions.invoke('delete-staff-account', {
-      body: { userId: id }
-    });
-
-    if (error) throw new Error(`Network Error: ${error.message}`);
-    if (data?.error) throw new Error(`Deletion Failed: ${data.error}`);
-    
-    // Also delete locally
-    const db = await bootCoreDatabase();
-    const doc = await db.collections.users.findOne(id).exec();
-    if (doc) {
-      await doc.patch({ is_deleted: true, updated_at: new Date().toISOString() });
-    }
+    console.log("☢️ [Zero Dawn] User deletion is neutralized.", id);
+    alert("Database engine is neutralized. User cannot be deleted.");
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    const db = await bootCoreDatabase();
-    const doc = await db.collections.users.findOne(id).exec();
-    if (doc) {
-      await doc.patch({
-        ...updates,
-        updated_at: new Date().toISOString()
-      });
-    }
+    console.log("☢️ [Zero Dawn] User update is neutralized.", { id, updates });
+    alert("Database engine is neutralized. User cannot be updated.");
   };
 
   const updateRolePermissions = async (role: string, updates: Partial<RolePermissionConfig>) => {
-    const db = await bootCoreDatabase();
-    const docs = await db.collections.role_permissions.find({
-      selector: {
-        role: role
-      }
-    }).exec();
-    
-    if (docs.length > 0) {
-      await docs[0].patch({
-        ...updates,
-        updated_at: new Date().toISOString()
-      });
-    }
+    console.log("☢️ [Zero Dawn] Role permissions update is neutralized.", { role, updates });
+    alert("Database engine is neutralized. Permissions cannot be updated.");
   };
 
   return { users, rolePermissions, isLoading, deleteUser, updateUser, updateRolePermissions, refresh };

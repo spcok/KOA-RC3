@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { OrgProfileSettings } from '../../types';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 
 const DEFAULT_SETTINGS: OrgProfileSettings = {
   id: 'profile',
@@ -24,17 +23,11 @@ export function useOrgSettings() {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.collections.organisations.findOne('profile').$.subscribe(doc => {
-          if (isMounted && doc) {
-            setSettings(doc.toJSON() as unknown as OrgProfileSettings);
-            setIsLoading(false);
-          } else if (isMounted) {
-            setIsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Org settings loading is neutralized.");
+        if (isMounted) {
+          setSettings(DEFAULT_SETTINGS);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load org settings:', err);
         if (isMounted) setIsLoading(false);
@@ -50,12 +43,8 @@ export function useOrgSettings() {
   }, []);
 
   const saveSettings = async (newSettings: OrgProfileSettings) => {
-    const db = await bootCoreDatabase();
-    await db.collections.organisations.upsert({
-      ...newSettings,
-      id: 'profile',
-      updated_at: new Date().toISOString()
-    });
+    console.log("☢️ [Zero Dawn] Org settings save is neutralized.", newSettings);
+    alert("Database engine is neutralized. Settings cannot be saved.");
   };
 
   return { settings, isLoading, saveSettings };

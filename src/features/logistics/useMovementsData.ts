@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { InternalMovement } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 
 export function useMovementsData() {
   const [movements, setMovements] = useState<InternalMovement[]>([]);
@@ -13,17 +11,11 @@ export function useMovementsData() {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.collections.internal_movements.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as InternalMovement).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
-            const sortedData = rawData.sort((a, b) => new Date(b.log_date || 0).getTime() - new Date(a.log_date || 0).getTime());
-            setMovements(sortedData);
-            setIsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Movements data loading is neutralized.");
+        if (isMounted) {
+          setMovements([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load movements data:', err);
         if (isMounted) setIsLoading(false);
@@ -39,15 +31,8 @@ export function useMovementsData() {
   }, []);
 
   const addMovement = async (movement: Omit<InternalMovement, 'id' | 'created_by'>) => {
-    const db = await bootCoreDatabase();
-    const newMovement: InternalMovement = {
-      ...movement,
-      id: uuidv4(),
-      created_by: 'SYS', // Mock user
-      updated_at: new Date().toISOString(),
-      is_deleted: false
-    } as InternalMovement;
-    await db.collections.internal_movements.upsert(newMovement);
+    console.log("☢️ [Zero Dawn] Add movement is neutralized.", movement);
+    alert("Database engine is neutralized. Movement cannot be added.");
   };
 
   return {

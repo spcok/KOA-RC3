@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { bootCoreDatabase, startCoreSync } from '../lib/DatabaseCore';
 import { User } from '../types';
 import { Session } from '@supabase/supabase-js';
 
@@ -55,92 +54,40 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
 
     try {
-      let isOnlineAuthSuccess = false;
-      let activeSession = null;
-
-      // 🚨 TIER 1: STRICT SEQUENTIAL ONLINE GATEKEEPER
-      if (navigator.onLine) {
-        try {
-          console.log("📡 [Auth] Attempting Live Supabase Login...");
-          
-          const authResponse = await withTimeout(
-            supabase.auth.signInWithPassword({ email, password }), 
-            5000, 
-            "Supabase connection timed out."
-          );
-
-          if (authResponse.error) {
-            if (authResponse.error.message.toLowerCase().includes('credentials') || authResponse.error.message.toLowerCase().includes('invalid')) {
-              throw new Error("Invalid email or password.");
-            }
-            throw new Error("Supabase rejected connection.");
-          } 
-          
-          isOnlineAuthSuccess = true;
-          activeSession = authResponse.data.session;
-          console.log("✅ [Auth] Live Login Successful. Now fetching local profile...");
-          startCoreSync().catch(e => console.warn(e));
-
-        } catch (tier1Error: unknown) {
-          if (tier1Error instanceof Error && tier1Error.message === "Invalid email or password.") {
-            throw tier1Error; 
-          }
-          console.warn("⚠️ [Auth] Live Login Network Failure. Falling back to offline cache...", tier1Error instanceof Error ? tier1Error.message : String(tier1Error));
-        }
+      if (!navigator.onLine) {
+        throw new Error("Network connection required for login.");
       }
 
-     // 🚨 TIER 2 & PROFILE HYDRATION: Only runs after Tier 1 finishes
-      console.log("🛡️ [Auth] Booting local cache to retrieve user profile...");
-      const db = await withTimeout(bootCoreDatabase(), 3000, "Local database failed to wake up.");
+      console.log("📡 [Auth] Attempting Live Supabase Login...");
       
-      let usersDoc = await withTimeout(
-        db.users.find({ selector: {} }).exec(),
-        4000,
-        "Offline database query timed out. IndexedDB connection may be corrupted."
+      const authResponse = await withTimeout(
+        supabase.auth.signInWithPassword({ email, password }), 
+        5000, 
+        "Supabase connection timed out."
       );
 
-      let rawUsers = usersDoc ? usersDoc.map(u => u.toJSON()) : [];
-      let localUser = rawUsers.find(u => u.email?.toLowerCase() === email.toLowerCase() && !u.is_deleted);
-
-      // 🚨 CRITICAL FIX: The "New Device" Catch-22 Waiter
-      // If this is a fresh login, background sync hasn't finished pulling the profile yet.
-      // We pause for 2.5 seconds to let the sync populate the database, then check again.
-      if (!localUser && isOnlineAuthSuccess) {
-         console.log("⏳ [Auth] Local profile not found. Waiting for background sync to catch up...");
-         await new Promise(resolve => setTimeout(resolve, 2500)); 
-         
-         usersDoc = await db.users.find({ selector: {} }).exec();
-         rawUsers = usersDoc ? usersDoc.map(u => u.toJSON()) : [];
-         localUser = rawUsers.find(u => u.email?.toLowerCase() === email.toLowerCase() && !u.is_deleted);
-      }
-
-      if (!localUser) {
-        throw new Error(navigator.onLine 
-          ? "No profile found on this device. Please check your credentials or contact support." 
-          : "No offline profile found. Connect to Wi-Fi to sync this device.");
-      }
-      
-      // 🚨 TIER 3: OFFLINE VERIFICATION
-      if (!isOnlineAuthSuccess) {
-        console.log("🔒 [Auth] Engaging Offline Verification...");
-        const storedPin = String(localUser.pin || '');
-        const storedPass = String(localUser.password || '');
-        const inputCredentials = String(password);
-        
-        if (storedPin !== inputCredentials && storedPass !== inputCredentials) {
-          throw new Error("Invalid offline email or PIN/Password.");
+      if (authResponse.error) {
+        if (authResponse.error.message.toLowerCase().includes('credentials') || authResponse.error.message.toLowerCase().includes('invalid')) {
+          throw new Error("Invalid email or password.");
         }
-        console.log("✅ [Auth] Offline Login Successful.");
+        throw new Error(authResponse.error.message);
+      } 
+      
+      const session = authResponse.data.session;
+      const user = authResponse.data.user;
+
+      if (!session || !user) {
+        throw new Error("Login failed to establish session.");
       }
 
       set({
-        session: activeSession,
+        session,
         currentUser: {
-          id: String(localUser.id),
-          email: localUser.email,
-          name: localUser.name || 'Unknown User',
-          role: localUser.role || 'GUEST',
-          initials: localUser.initials || '??',
+          id: user.id,
+          email: user.email || '',
+          name: user.user_metadata?.name || user.email || 'Unknown User',
+          role: user.user_metadata?.role || 'GUEST',
+          initials: (user.user_metadata?.name || user.email || '??').substring(0, 2).toUpperCase(),
         },
         isLoading: false
       });

@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
-import { Animal, ConservationStatus } from '../../types';
-import { batchGetSpeciesData } from '../../services/geminiService';
+import { Animal } from '../../types';
 
 export function useIntelligenceData() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -13,15 +11,11 @@ export function useIntelligenceData() {
 
     const loadAnimals = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.collections.animals.find().$.subscribe(docs => {
-          if (isMounted) {
-            setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
-            setIsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Intelligence data loading is neutralized.");
+        if (isMounted) {
+          setAnimals([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load intelligence data:', err);
         if (isMounted) setIsLoading(false);
@@ -37,53 +31,13 @@ export function useIntelligenceData() {
   }, []);
 
   const updateAnimal = async (animal: Animal) => {
-    try {
-      const db = await bootCoreDatabase();
-      await db.collections.animals.upsert({
-        ...animal,
-        updated_at: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error('Failed to update animal:', err);
-    }
+    console.log("☢️ [Zero Dawn] Animal update is neutralized.", animal);
+    alert("Database engine is neutralized. Animal cannot be updated.");
   };
 
   const runIUCNScan = async (onProgress: (progress: number) => void) => {
-    if (!navigator.onLine) {
-      console.warn("Offline: IUCN Scan disabled.");
-      alert("IUCN Scan requires an active internet connection.");
-      return;
-    }
-    const animalsToScan = animals.filter(a => !a.red_list_status || !a.latin_name);
-    const total = animalsToScan.length;
-    
-    if (total === 0) return;
-
-    const batchSize = 5;
-    for (let i = 0; i < total; i += batchSize) {
-      const batch = animalsToScan.slice(i, i + batchSize);
-      const speciesList = [...new Set(batch.map(a => a.species))];
-      
-      try {
-        const enrichedData = await batchGetSpeciesData(speciesList);
-        
-        for (const animal of batch) {
-          const data = enrichedData[animal.species];
-          if (data) {
-            await updateAnimal({
-              ...animal,
-              latin_name: data.latin_name,
-              red_list_status: data.conservation_status as ConservationStatus,
-              description: animal.description || data.fun_fact
-            });
-          }
-        }
-        
-        onProgress(Math.min(100, Math.round(((i + batch.length) / total) * 100)));
-      } catch (error) {
-        console.error('Batch scan error:', error);
-      }
-    }
+    console.log("☢️ [Zero Dawn] IUCN Scan is neutralized.");
+    alert("Database engine is neutralized. Scan cannot proceed.");
   };
 
   return { animals, isLoading, runIUCNScan };

@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
-import { supabase } from '../../lib/supabase';
 
 export function useSystemHealthData() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -128,17 +126,16 @@ export function useSystemHealthData() {
 
     const updateCounts = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        const counts = {
-          animals: await db.collections.animals.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          users: await db.collections.users.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          daily_logs: await db.collections.daily_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          tasks: await db.collections.tasks.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length),
-          medical_logs: await db.collections.medical_logs.find().exec().then(docs => docs.map(d => d.toJSON() as unknown as { is_deleted?: boolean }).filter(d => !d.is_deleted).length)
-        };
-        if (isMounted) setTableCounts(counts);
+        console.log("☢️ [Zero Dawn] System health counts are neutralized.");
+        if (isMounted) {
+          setTableCounts({
+            animals: 0,
+            users: 0,
+            daily_logs: 0,
+            tasks: 0,
+            medical_logs: 0
+          });
+        }
       } catch (e) {
         console.error('Failed to update counts', e);
       }
@@ -182,30 +179,9 @@ export function useSystemHealthData() {
   const executeWipeData = async () => {
     setIsWipingData(true);
     setWipeProgress(0);
-
-    const tablesToWipe = [
-      'animals', 'daily_logs', 'tasks', 'medical_logs', 'mar_charts',
-      'quarantine_records', 'internal_movements', 'external_transfers',
-      'timesheets', 'holidays', 'contacts', 'zla_documents',
-      'safety_drills', 'maintenance_logs', 'first_aid_logs',
-      'incidents', 'daily_rounds'
-    ];
-
     try {
-      const db = await bootCoreDatabase();
-      for (let i = 0; i < tablesToWipe.length; i++) {
-        const table = tablesToWipe[i];
-        
-        // Wipe Cloud Database
-        await supabase.from(table).delete().not('id', 'is', null);
-        
-        // Wipe Local RxDB Cache
-        if (db && db.collections[table]) {
-          await db.collections[table].find().remove();
-        }
-
-        setWipeProgress(Math.round(((i + 1) / tablesToWipe.length) * 100));
-      }
+      console.log("☢️ [Zero Dawn] Data wipe is neutralized.");
+      alert("Database engine is neutralized. Data wipe cannot proceed.");
       return true;
     } catch (error) {
       console.error("Data wipe failed:", error);

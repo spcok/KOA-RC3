@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { Animal } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAnimalsData } from './useAnimalsData';
@@ -18,20 +17,14 @@ const AnimalsList = () => {
 
   useEffect(() => {
     let isMounted = true;
-    let sub: { unsubscribe: () => void } | null = null;
+    const sub: { unsubscribe: () => void } | null = null;
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.archived_animals.find({
-          selector: {}
-        }).$.subscribe(docs => {
-          if (isMounted) {
-            setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
-          }
-        });
+        console.log("☢️ [Zero Dawn] Archived animals loading is neutralized.");
+        if (isMounted) {
+          setArchivedAnimals([]);
+        }
       } catch (err) {
         console.error('Failed to load archived animals:', err);
       }

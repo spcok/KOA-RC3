@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { bootCoreDatabase } from '../lib/DatabaseCore';
 
 const lockedPermissions = {
   isAdmin: false, isOwner: false, isSeniorKeeper: false, isVolunteer: false, isStaff: false,
@@ -63,33 +62,10 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
       }
 
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        subscription = db.role_permissions.find({
-          selector: {}
-        }).$.subscribe((docs) => {
-          const dbPerms = docs.map(d => d.toJSON() as unknown as Record<string, boolean | string>).filter(d => !d.is_deleted).find(d => String(d.role).toUpperCase() === currentRole);
-          
-          if (dbPerms && isMounted) {
-            setPermissions({
-              ...lockedPermissions,
-              role: currentRole,
-              isAdmin: false, isOwner: false, isSeniorKeeper: currentRole === 'SENIOR_KEEPER',
-              isVolunteer: currentRole === 'VOLUNTEER', isStaff: true,
-              canViewAnimals: dbPerms.view_animals || false, canEditAnimals: dbPerms.edit_animals || false,
-              canViewMedical: dbPerms.view_medical || false, canEditMedical: dbPerms.edit_medical || false,
-              canViewReports: dbPerms.generate_reports || false, canManageStaff: dbPerms.manage_users || false,
-              canEditSettings: dbPerms.view_settings || false, canViewSettings: dbPerms.view_settings || false,
-              canGenerateReports: dbPerms.generate_reports || false, canManageUsers: dbPerms.manage_users || false,
-              canViewMovements: dbPerms.view_movements || false, canEditMovements: dbPerms.log_internal_movements || false,
-              ...dbPerms
-            });
-            setIsLoading(false); // 🚨 Resolve loading
-          } else if (isMounted) {
-            setIsLoading(false); // Resolve even if no rules found to prevent infinite hang
-          }
-        });
+        console.log("☢️ [Zero Dawn] Permissions sync is neutralized.");
+        if (isMounted) {
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('❌ [Permissions] Failed to sync:', error);
         if (isMounted) setIsLoading(false);

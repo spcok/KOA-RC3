@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../lib/DatabaseCore';
 import { UserRole, RolePermissionConfig } from '../types';
 
 const defaultPermissions: Omit<RolePermissionConfig, 'role'> = {
@@ -52,16 +51,10 @@ export const useRoleSettings = () => {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.role_permissions.find({
-          selector: {}
-        }).$.subscribe(docs => {
-          if (isMounted) {
-            setRoles(docs.map(d => d.toJSON() as RolePermissionConfig).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-          }
-        });
+        console.log("☢️ [Zero Dawn] Role settings loading is neutralized.");
+        if (isMounted) {
+          setRoles([]);
+        }
       } catch (err) {
         console.error('Failed to load role settings:', err);
       }
@@ -78,29 +71,7 @@ export const useRoleSettings = () => {
   useEffect(() => {
     let isMounted = true;
     const ensureRoles = async () => {
-      const db = await bootCoreDatabase();
-      if (!isMounted) return;
-
-      if (roles.length > 0) {
-        const existingRoles = roles.map(r => r.role);
-        const missingRoles = Object.values(UserRole).filter(role => !existingRoles.includes(role));
-
-        for (const role of missingRoles) {
-          const newRoleConfig: RolePermissionConfig = {
-            role,
-            ...defaultPermissions};
-          try {
-            await db.role_permissions.upsert({
-              ...newRoleConfig,
-              id: `role_${role}`,
-              is_deleted: false,
-              updated_at: new Date().toISOString()
-            });
-          } catch (err) {
-            console.error('Failed to create missing role:', err);
-          }
-        }
-      }
+      console.log("☢️ [Zero Dawn] Role verification is neutralized.");
     };
 
     ensureRoles();
@@ -108,24 +79,8 @@ export const useRoleSettings = () => {
   }, [roles]);
 
   const handlePermissionChange = async (role: UserRole, permissionKey: keyof RolePermissionConfig, newValue: boolean) => {
-    const db = await bootCoreDatabase();
-    const roleConfig = roles?.find(r => r.role === role);
-    if (!roleConfig) return;
-
-    const updatedConfig = {
-      ...roleConfig,
-      [permissionKey]: newValue};
-
-    try {
-      await db.admin_records.upsert({
-        ...updatedConfig,
-        id: `role_${role}`,
-        record_type: 'role_permission',
-        updated_at: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error('Failed to update permission:', err);
-    }
+    console.log("☢️ [Zero Dawn] Permission change is neutralized.", { role, permissionKey, newValue });
+    alert("Database engine is neutralized. Settings cannot be saved.");
   };
 
   return { roles, handlePermissionChange };

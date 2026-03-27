@@ -5,8 +5,6 @@ import { Animal, AnimalCategory, HazardRating, ConservationStatus, EntityType, M
 import { useAnimalForm } from './useAnimalForm';
 import { getAnimalIntelligence } from '../../services/geminiService';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
-import { Subscription } from 'rxjs';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { useOperationalLists } from '../../hooks/useOperationalLists';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '../../utils/cropImage';
@@ -49,28 +47,10 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        parentMobsSub = db.animals.find({
-          selector: {
-            entity_type: EntityType.GROUP,
-            id: { $ne: initialData?.id || '' }}
-        }).$.subscribe(docs => {
-          if (isMounted) {
-            setParentMobs(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
-          }
-        });
-
-        if (initialData?.id) {
-          linkedChildrenSub = db.animals.find({
-            selector: {
-              parent_mob_id: initialData.id}
-          }).$.subscribe(docs => {
-            if (isMounted) {
-              setLinkedChildrenCount(docs.filter(d => !d.toJSON().is_deleted).length);
-            }
-          });
+        console.log("☢️ [Zero Dawn] Animal form modal data loading is neutralized.");
+        if (isMounted) {
+          setParentMobs([]);
+          setLinkedChildrenCount(0);
         }
       } catch (error) {
         console.error('Failed to load modal data:', error);
@@ -183,59 +163,8 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       weight_unit: weightUnit === 'lb' ? 'lbs_oz' : weightUnit
     };
     try {
-      const db = await bootCoreDatabase();
-      if (initialData) {
-        if (initialData.location !== payload.location && initialData.location !== 'Main Aviary') {
-          const internalMovement: InternalMovement = {
-            id: crypto.randomUUID(),
-            animal_id: initialData.id,
-            animal_name: payload.name,
-            log_date: new Date().toISOString(),
-            movement_type: MovementType.TRANSFER,
-            source_location: initialData.location || 'Unknown',
-            destination_location: payload.location,
-            created_by: String(currentUser?.initials || 'SYSTEM'),
-            notes: 'Auto-generated from profile location update.'
-          };
-          await db.internal_movements.upsert({
-            ...internalMovement,
-            is_deleted: false
-          });
-        }
-      } else {
-        if (['BORN', 'TRANSFERRED_IN', 'RESCUE'].includes(payload.acquisition_type)) {
-          const externalTransfer: ExternalTransfer = {
-            id: crypto.randomUUID(),
-            animal_id: targetId,
-            animal_name: payload.name,
-            transfer_type: TransferType.ARRIVAL,
-            date: payload.acquisition_date || new Date().toISOString().split('T')[0],
-            institution: payload.origin || 'Unknown',
-            transport_method: 'N/A',
-            cites_article_10_ref: 'N/A',
-            status: TransferStatus.COMPLETED,
-            notes: `Auto-generated from animal creation (Type: ${payload.acquisition_type}).`
-          };
-          await db.external_transfers.upsert({
-            ...externalTransfer,
-            is_deleted: false
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Log failed", e);
-    }
-    
-    try {
-      const db = await bootCoreDatabase();
-      const animalData: Animal = {
-        ...initialData,
-        ...payload,
-        id: targetId,
-        is_deleted: false
-      } as Animal;
-
-      await db.animals.upsert(animalData);
+      console.log("☢️ [Zero Dawn] Animal form submission is neutralized.", payload);
+      alert("Database engine is neutralized. Animal record cannot be saved.");
       onClose();
     } catch (error) {
       console.error('Failed to save animal:', error);

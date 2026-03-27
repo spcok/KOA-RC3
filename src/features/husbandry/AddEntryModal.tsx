@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { X, Save, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Animal, LogType, LogEntry, AnimalCategory } from '../../types';
 import { getMaidstoneDailyWeather } from '../../services/weatherService';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { useOperationalLists } from '../../hooks/useOperationalLists';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
 import { safeJsonParse } from '../../lib/jsonUtils';
@@ -199,30 +198,8 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
       if (logType === LogType.BIRTH) {
         entry.value = `Litter Size: ${litterSize} (${litterHealth})`;
         if (!existingLog && typeof litterSize === 'number' && litterSize > 0) {
-          const db = await bootCoreDatabase();
-          const pups = Array.from({ length: litterSize }).map((_, i) => ({
-            id: uuidv4(),
-            name: `Pup ${i + 1} (${animal.name})`,
-            species: animal.species,
-            category: animal.category,
-            dob: date,
-            is_dob_unknown: false,
-            sex: 'Unknown',
-            location: animal.location,
-            acquisition_date: date,
-            acquisition_type: 'BORN',
-            origin: 'Captive Bred',
-            dam_id: animal.sex === 'Female' ? animal.id : undefined,
-            sire_id: animal.sex === 'Male' ? animal.id : undefined,
-            parent_mob_id: animal.entity_type === 'GROUP' ? animal.id : animal.parent_mob_id,
-            archived: false,
-            is_quarantine: false,
-            display_order: 0,
-          } as Animal));
-          
-          for (const pup of pups) {
-            await db.animals.upsert(pup);
-          }
+          console.log("☢️ [Zero Dawn] Birth log animal creation is neutralized.");
+          alert("Database engine is neutralized. New animals cannot be created from birth log.");
         }
       }
 

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { Animal, Task } from '../../types';
 
 export function useFeedingScheduleData() {
@@ -13,23 +12,12 @@ export function useFeedingScheduleData() {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        const animalsSub = db.collections.animals.find().$.subscribe(docs => {
-          if (isMounted) {
-            setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !d.is_deleted));
-          }
-        });
-
-        const tasksSub = db.collections.tasks.find().$.subscribe(docs => {
-          if (isMounted) {
-            setTasks(docs.map(d => d.toJSON() as Task).filter(d => !d.is_deleted));
-            setIsLoading(false);
-          }
-        });
-
-        subs = [animalsSub, tasksSub];
+        console.log("☢️ [Zero Dawn] Feeding schedule data loading is neutralized.");
+        if (isMounted) {
+          setAnimals([]);
+          setTasks([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load feeding schedule data:', err);
         if (isMounted) setIsLoading(false);
@@ -45,27 +33,13 @@ export function useFeedingScheduleData() {
   }, []);
 
   const addTasks = async (newTasks: Task[]) => {
-    const db = await bootCoreDatabase();
-    for (const task of newTasks) {
-      await db.collections.tasks.upsert({
-        ...task,
-        updated_at: new Date().toISOString(),
-        is_deleted: false
-      });
-    }
+    console.log("☢️ [Zero Dawn] Add tasks is neutralized.", newTasks);
+    alert("Database engine is neutralized. Tasks cannot be added.");
   };
 
   const deleteTask = async (id: string) => {
-    const db = await bootCoreDatabase();
-    const taskDoc = await db.collections.tasks.findOne(id).exec();
-    if (taskDoc) {
-      const task = taskDoc.toJSON();
-      await db.collections.tasks.upsert({
-        ...task,
-        is_deleted: true,
-        updated_at: new Date().toISOString()
-      });
-    }
+    console.log("☢️ [Zero Dawn] Delete task is neutralized.", id);
+    alert("Database engine is neutralized. Task cannot be deleted.");
   };
 
   return {

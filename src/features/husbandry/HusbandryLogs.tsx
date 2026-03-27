@@ -3,7 +3,6 @@ import { Plus, Loader2, Edit2, Trash2 } from 'lucide-react';
 import AddEntryModal from './AddEntryModal';
 import { Animal, LogType, LogEntry } from '../../types';
 import { formatWeightDisplay, parseLegacyWeightToGrams } from '../../services/weightUtils';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 // 🚨 CRITICAL FIX: Import your standardized data hook
 import { useDailyLogData } from './useDailyLogData'; 
 
@@ -34,11 +33,8 @@ export const HusbandryLogs: React.FC<Props> = ({ animalId, animal }) => {
 
   const handleSaveLog = async (entry: LogEntry) => {
     try {
-      const db = await bootCoreDatabase();
-      await db.daily_logs.upsert({
-        ...entry,
-        is_deleted: false
-      });
+      console.log("☢️ [Zero Dawn] Save husbandry log is neutralized.", entry);
+      alert("Database engine is neutralized. Log cannot be saved.");
       setIsAddModalOpen(false);
       setSelectedLog(null);
     } catch (err) {
@@ -47,13 +43,9 @@ export const HusbandryLogs: React.FC<Props> = ({ animalId, animal }) => {
   };
 
   const handleDeleteLog = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this log?')) return;
     try {
-      const db = await bootCoreDatabase();
-      const doc = await db.daily_logs.findOne(id).exec();
-      if (doc) {
-        await doc.patch({ is_deleted: true });
-      }
+      console.log("☢️ [Zero Dawn] Delete husbandry log is neutralized.", id);
+      alert("Database engine is neutralized. Log cannot be deleted.");
     } catch (err) {
       console.error('Failed to delete log:', err);
     }

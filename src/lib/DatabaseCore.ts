@@ -6,7 +6,6 @@ import { Subscription } from 'rxjs';
 
 interface KoaWindow extends Window {
   __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
-  __KOA_DB_INSTANCE?: RxDatabase | null;
 }
 
 const SYNC_TABLES = [
@@ -19,6 +18,7 @@ const SYNC_TABLES = [
   'zla_documents', 'bug_reports', 'tasks'
 ];
 
+// The Immortal Schema: Blindly accepts all columns from Supabase
 const universalSchema: RxJsonSchema<Record<string, unknown>> = {
   version: 0,
   primaryKey: 'id',
@@ -27,7 +27,6 @@ const universalSchema: RxJsonSchema<Record<string, unknown>> = {
   properties: {
     id: { type: 'string', maxLength: 100 },
     is_deleted: { type: ['boolean', 'null'] },
-    created_at: { type: ['string', 'null'] },
     updated_at: { type: ['string', 'null'] }
   },
   required: ['id']
@@ -36,31 +35,32 @@ const universalSchema: RxJsonSchema<Record<string, unknown>> = {
 const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   acc[table] = { schema: universalSchema };
   return acc;
-}, {} as Record<string, { schema: RxJsonSchema<Record<string, unknown>> }>);
+}, {} as Record<string, any>);
 
 export const bootCoreDatabase = async (): Promise<RxDatabase> => {
   const koaWindow = window as unknown as KoaWindow;
-  
-  if (koaWindow.__KOA_DB_PROMISE) return koaWindow.__KOA_DB_PROMISE;
 
-  console.log("🛡️ [Core DB] Booting Project Phoenix v8 (Ironclad Engine v2)...");
+  if (koaWindow.__KOA_DB_PROMISE) {
+    return koaWindow.__KOA_DB_PROMISE;
+  }
+
+  console.log("🟢 [Core DB] Booting Pristine RxDB Engine...");
 
   koaWindow.__KOA_DB_PROMISE = (async () => {
     try {
       const db = await createRxDatabase({
-        name: 'koa_manager_ironclad_v2',
+        name: 'koa_manager_pristine_v1', 
         storage: getRxStorageDexie()
       });
 
-      if (!db.collections.animals) {
+      // Safe lock: Only add collections if the DB is truly empty
+      if (Object.keys(db.collections).length === 0) {
         await db.addCollections(appSchemas);
       }
 
-      koaWindow.__KOA_DB_INSTANCE = db;
       return db;
-    } catch (error: unknown) {
+    } catch (error: any) {
       koaWindow.__KOA_DB_PROMISE = null;
-      koaWindow.__KOA_DB_INSTANCE = null;
       throw error;
     }
   })();
@@ -69,32 +69,28 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
 };
 
 const activeReplications: RxSupabaseReplicationState<unknown>[] = [];
-const errorSubscriptions: Subscription[] = [];
-let isSyncStarting = false;
+const errorSubs: Subscription[] = [];
+let isSyncing = false;
 
 export const startCoreSync = async () => {
-  if (isSyncStarting) return;
-  isSyncStarting = true;
+  if (isSyncing || !navigator.onLine) return;
+  isSyncing = true;
 
   try {
     const db = await bootCoreDatabase();
-    if (!navigator.onLine) return;
+    console.log("📡 [Sync] Engaging Pristine 1:1 Supabase Sync...");
 
-    console.log("📡 [Sync] Online. Engaging 1:1 Supabase Replication...");
-
-    await Promise.all(activeReplications.map(state => state.cancel()));
+    await Promise.all(activeReplications.map(s => s.cancel()));
     activeReplications.length = 0;
-
-    errorSubscriptions.forEach(sub => sub.unsubscribe());
-    errorSubscriptions.length = 0;
+    errorSubs.forEach(s => s.unsubscribe());
+    errorSubs.length = 0;
 
     for (const table of SYNC_TABLES) {
-      const collection = db.collections[table];
-      if (!collection) continue;
+      if (!db.collections[table]) continue;
 
       const state = replicateSupabase({
-        collection,
-        replicationIdentifier: `ironclad_${table}_sync_v2`,
+        collection: db.collections[table],
+        replicationIdentifier: `pristine_${table}_sync`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',
@@ -112,11 +108,11 @@ export const startCoreSync = async () => {
       });
 
       activeReplications.push(state);
-      errorSubscriptions.push(state.error$.subscribe(err => {
-        if (!err.message?.includes('Offline')) console.error(`[Sync Error] ${table}:`, err);
+      errorSubs.push(state.error$.subscribe(err => {
+        if (!err.message?.includes('Offline')) console.error(`[Sync] ${table}:`, err);
       }));
     }
   } finally {
-    isSyncStarting = false;
+    isSyncing = false;
   }
 };

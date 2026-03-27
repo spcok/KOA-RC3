@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { Contact } from '../../types';
 
 export function useDirectoryData() {
@@ -13,17 +11,11 @@ export function useDirectoryData() {
 
     const loadContacts = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.collections.contacts.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as Contact).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
-            const sortedData = rawData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            setContacts(sortedData);
-            setIsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Directory data loading is neutralized.");
+        if (isMounted) {
+          setContacts([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load directory data:', err);
         if (isMounted) setIsLoading(false);
@@ -39,46 +31,18 @@ export function useDirectoryData() {
   }, []);
 
   const addContact = async (contact: Omit<Contact, 'id'>) => {
-    const db = await bootCoreDatabase();
-    const id = uuidv4();
-    const newContact = {
-      ...contact,
-      id,
-      is_deleted: false,
-      updated_at: new Date().toISOString()
-    };
-    try {
-      await db.collections.contacts.upsert(newContact);
-    } catch (err) {
-      console.error('Failed to add contact:', err);
-    }
+    console.log("☢️ [Zero Dawn] Add contact is neutralized.", contact);
+    alert("Database engine is neutralized. Contact cannot be added.");
   };
 
   const updateContact = async (contact: Contact) => {
-    const db = await bootCoreDatabase();
-    try {
-      await db.collections.contacts.upsert({
-        ...contact,
-        updated_at: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error('Failed to update contact:', err);
-    }
+    console.log("☢️ [Zero Dawn] Update contact is neutralized.", contact);
+    alert("Database engine is neutralized. Contact cannot be updated.");
   };
 
   const deleteContact = async (id: string) => {
-    const db = await bootCoreDatabase();
-    try {
-      const doc = await db.collections.contacts.findOne(id).exec();
-      if (doc) {
-        await doc.patch({
-          is_deleted: true,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to delete contact:', err);
-    }
+    console.log("☢️ [Zero Dawn] Delete contact is neutralized.", id);
+    alert("Database engine is neutralized. Contact cannot be deleted.");
   };
 
   return { contacts, isLoading, addContact, updateContact, deleteContact };

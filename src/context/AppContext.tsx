@@ -1,21 +1,14 @@
 import React, { ReactNode } from 'react';
 import { AnimalCategory, UserRole } from '../types';
-import { RxDatabase } from 'rxdb';
 import { AppContext, AppContextType } from './Context';
-import { bootCoreDatabase } from '../lib/DatabaseCore';
-// import { useTimesheetData } from '../features/staff/useTimesheetData';
-// import { useAuthStore } from '../store/authStore';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // const { clockIn, clockOut, timesheets } = useTimesheetData();
-  // const { currentUser } = useAuthStore();
-  const [db, setDb] = React.useState<RxDatabase | null>(null);
+  const [db, setDb] = React.useState<any>(null);
 
   React.useEffect(() => {
-    bootCoreDatabase().then(setDb);
+    setDb({} as any);
   }, []);
 
-  // const activeShift = timesheets.find(t => t.staff_name === currentUser?.name && !t.clock_out);
   const activeShift = null;
 
   const value: AppContextType = {
@@ -29,10 +22,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     },
     eventTypes: ['Training', 'Public Display', 'Medical Treatment', 'Cleaning', 'Moulting'],
     activeShift: activeShift || null,
-    clockIn: async () => { /* await clockIn(currentUser?.name || 'Unknown') */ },
-    clockOut: async () => {
-      // if (activeShift) await clockOut(activeShift.id);
-    },
+    clockIn: async () => { },
+    clockOut: async () => { },
     orgProfile: {
       name: 'Kent Owl Academy',
       logo_url: 'https://picsum.photos/seed/koa/200/200',

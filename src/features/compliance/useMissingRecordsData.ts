@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { LogType, Animal, LogEntry, ClinicalNote } from '../../types';
 
 export interface MissingRecordAlert {
@@ -43,25 +42,13 @@ export function useMissingRecordsData() {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        const animalsSub = db.animals.find().$.subscribe(docs => {
-          if (isMounted) setAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-        });
-
-        const dailyLogsSub = db.daily_logs.find().$.subscribe(docs => {
-          if (isMounted) setDailyLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-        });
-
-        const medicalLogsSub = db.medical_logs.find().$.subscribe(docs => {
-          if (isMounted) {
-            setMedicalLogs(docs.map(d => d.toJSON() as ClinicalNote).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-            setIsLoading(false);
-          }
-        });
-
-        subs = [animalsSub, dailyLogsSub, medicalLogsSub];
+        console.log("☢️ [Zero Dawn] Missing records data loading is neutralized.");
+        if (isMounted) {
+          setAnimals([]);
+          setDailyLogs([]);
+          setMedicalLogs([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load missing records data:', err);
         if (isMounted) setIsLoading(false);

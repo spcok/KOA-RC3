@@ -1,8 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Subscription } from 'rxjs';
 import { AnimalCategory, DailyRound, Animal, LogType, LogEntry } from '../../types';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
-import { v4 as uuidv4 } from 'uuid';
 
 interface AnimalCheckState {
     isAlive?: boolean;
@@ -32,43 +29,13 @@ export function useDailyRoundData(viewDate: string) {
 
         const loadData = async () => {
             try {
-                const db = await bootCoreDatabase();
-                if (!isMounted) return;
-
-                subs = [
-                    // 🚨 Fixed Query
-                    db.collections.animals.find().$.subscribe(docs => {
-                        if (isMounted) {
-                            const rawData = docs.map(d => d.toJSON() as Animal);
-                            setAllAnimals(rawData.filter(a => !(a as unknown as { is_deleted?: boolean }).is_deleted));
-                        }
-                    }),
-
-                    // 🚨 Fixed Query
-                    db.collections.daily_logs.find({
-                        selector: { 
-                            log_date: { $eq: viewDate }
-                        }
-                    }).$.subscribe(docs => {
-                        if (isMounted) {
-                            const rawData = docs.map(d => d.toJSON() as LogEntry);
-                            setLiveLogs(rawData.filter(l => !(l as unknown as { is_deleted?: boolean }).is_deleted));
-                        }
-                    }),
-
-                    // 🚨 Fixed Query
-                    db.collections.daily_rounds.find({
-                        selector: { 
-                            date: { $eq: viewDate }
-                        }
-                    }).$.subscribe(docs => {
-                        if (isMounted) {
-                            const rawData = docs.map(d => d.toJSON() as DailyRound);
-                            setLiveRounds(rawData.filter(r => !(r as unknown as { is_deleted?: boolean }).is_deleted));
-                            setIsLoading(false);
-                        }
-                    })
-                ];
+                console.log("☢️ [Zero Dawn] Daily round data loading is neutralized.");
+                if (isMounted) {
+                    setAllAnimals([]);
+                    setLiveLogs([]);
+                    setLiveRounds([]);
+                    setIsLoading(false);
+                }
             } catch (error) {
                 console.error("Failed to load daily rounds data", error);
                 if (isMounted) setIsLoading(false);
@@ -155,20 +122,8 @@ export function useDailyRoundData(viewDate: string) {
         if (!isComplete || !signingInitials) return;
         setIsSubmitting(true);
         try {
-            const db = await bootCoreDatabase();
-            const round: DailyRound = {
-                id: currentRoundId || uuidv4(),
-                date: viewDate,
-                shift: roundType,
-                section: activeTab,
-                check_data: checks,
-                status: 'completed',
-                completed_by: signingInitials,
-                completed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                notes: generalNotes
-            };
-            await db.collections.daily_rounds.upsert(round);
+            console.log("☢️ [Zero Dawn] Sign off daily round is neutralized.");
+            alert("Database engine is neutralized. Round cannot be signed off.");
         } catch (error) {
             console.error('Failed to sign off round:', error);
         } finally {

@@ -2,7 +2,6 @@ import React from 'react';
 import { Animal, LogType, LogEntry, ClinicalNote } from '../../types';
 import HusbandryEntryModal from '../husbandry/AddEntryModal';
 import { AddClinicalNoteModal } from '../medical/AddClinicalNoteModal';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 
 interface AddEntryModalProps {
   isOpen: boolean;
@@ -25,11 +24,8 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
 
   const handleHusbandrySave = async (entry: Partial<LogEntry>) => {
     try {
-      const db = await bootCoreDatabase();
-      await db.daily_logs.upsert({
-        ...entry,
-        is_deleted: false
-      });
+      console.log("☢️ [Zero Dawn] Save husbandry log in animals is neutralized.", entry);
+      alert("Database engine is neutralized. Log cannot be saved.");
     } catch (err) {
       console.error("🛠️ [Animals QA] Failed to save husbandry log:", err);
     }
@@ -37,14 +33,8 @@ const AddEntryModal: React.FC<AddEntryModalProps> = ({
 
   const handleMedicalSave = async (note: Partial<ClinicalNote>) => {
     try {
-      const db = await bootCoreDatabase();
-      // Ensure animal_name is present for medical logs if required by the type
-      const noteWithMetadata = {
-        ...note,
-        animal_name: animal.name,
-        is_deleted: false
-      };
-      await db.medical_logs.upsert(noteWithMetadata);
+      console.log("☢️ [Zero Dawn] Save medical log in animals is neutralized.", note);
+      alert("Database engine is neutralized. Log cannot be saved.");
     } catch (err) {
       console.error("🛠️ [Animals QA] Failed to save medical log:", err);
     }

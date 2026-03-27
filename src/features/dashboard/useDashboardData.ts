@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Animal, AnimalCategory, LogType, LogEntry } from '../../types';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { useTaskData } from '../husbandry/useTaskData';
 
 export interface EnhancedAnimal extends Animal {
@@ -35,27 +34,13 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        const liveSub = db.collections.animals.find().$.subscribe(docs => {
-          if (isMounted) {
-            setLiveAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-            setIsLoading(false);
-          }
-        });
-
-        const archivedSub = db.collections.archived_animals.find().$.subscribe(docs => {
-          if (isMounted) setArchivedAnimals(docs.map(d => d.toJSON() as Animal).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-        });
-
-        const logsSub = db.collections.daily_logs.find({
-          selector: { log_date: viewDate }
-        }).$.subscribe(docs => {
-          if (isMounted) setLogs(docs.map(d => d.toJSON() as LogEntry).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted));
-        });
-
-        subs = [liveSub, archivedSub, logsSub];
+        console.log("☢️ [Zero Dawn] Dashboard data loading is neutralized.");
+        if (isMounted) {
+          setLiveAnimals([]);
+          setArchivedAnimals([]);
+          setLogs([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
         if (isMounted) setIsLoading(false);

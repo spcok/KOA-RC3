@@ -1,9 +1,7 @@
 import { createContext, useContext } from 'react';
 import { OrgProfile, User, Shift } from '../types';
-import { RxDatabase } from 'rxdb';
-
 export interface AppContextType {
-  db: RxDatabase | null;
+  db: any;
   foodOptions: string[];
   feedMethods: Record<string, string[]>;
   eventTypes: string[];

@@ -5,9 +5,6 @@ import {
   CheckCircle2, Info,
   Download, Trash2, ShieldX
 } from 'lucide-react';
-import { bootCoreDatabase } from '../../../lib/DatabaseCore';
-import { removeRxDatabase } from 'rxdb';
-import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 
 const SystemHealth: React.FC = () => {
   const [storageEstimate, setStorageEstimate] = useState<{ used: number; total: number; percentage: number } | null>(null);
@@ -28,25 +25,8 @@ const SystemHealth: React.FC = () => {
   const exportLocalDatabase = async () => {
     setIsExporting(true);
     try {
-      const db = await bootCoreDatabase();
-      const exportData: Record<string, unknown[]> = {};
-      
-      const collections = Object.keys(db.collections);
-      for (const colName of collections) {
-        const docs = await db.collections[colName].find().exec();
-        exportData[colName] = docs.map(d => d.toJSON()).filter(d => !d.is_deleted);
-      }
-      
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const date = new Date().toISOString().split('T')[0];
-      a.href = url;
-      a.download = `koa-local-db-backup-${date}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      console.log("☢️ [Zero Dawn] Export is neutralized.");
+      alert("Database engine is neutralized. No local data to export.");
     } catch (err) {
       console.error('🛠️ [Diagnostics] Export failed:', err);
     } finally {
@@ -55,7 +35,7 @@ const SystemHealth: React.FC = () => {
   };
 
   const purgeLocalDatabase = async () => {
-    const firstConfirm = window.confirm('🚨 CRITICAL WARNING: This will permanently delete ALL local data, including unsynced changes. This cannot be undone. Are you absolutely sure?');
+    const firstConfirm = window.confirm('🚨 CRITICAL WARNING: This will permanently delete ALL local data. This cannot be undone. Are you absolutely sure?');
     
     if (firstConfirm) {
       const secondConfirm = window.prompt('To confirm deletion, please type "PURGE" below (all caps):');
@@ -63,10 +43,6 @@ const SystemHealth: React.FC = () => {
       if (secondConfirm === 'PURGE') {
         try {
           console.warn('🚨 [Diagnostics] Initiating emergency local database purge...');
-          const db = await bootCoreDatabase();
-          if (db) {
-            await removeRxDatabase('animaldb_v11', getRxStorageDexie());
-          }
           localStorage.clear();
           window.location.reload();
         } catch (err) {
@@ -114,18 +90,12 @@ const SystemHealth: React.FC = () => {
               </div>
               <div className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg">
                 <div className="p-1 bg-white rounded shadow-sm shrink-0">
-                  <Info className="w-3 h-3 text-slate-400" />
+                  <span className="text-[10px] font-bold text-slate-400">INFO</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   IndexedDB storage is managed by the browser. Quota is shared with other site data.
                 </p>
               </div>
-              {storageEstimate.percentage > 80 && (
-                <div className="flex items-center gap-2 text-rose-600 text-xs font-bold animate-pulse">
-                  <AlertTriangle size={14} />
-                  Storage usage is critically high!
-                </div>
-              )}
             </div>
           ) : (
             <div className="flex items-center justify-center h-24 text-slate-400 text-sm italic">
@@ -142,8 +112,8 @@ const SystemHealth: React.FC = () => {
           </div>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-sm font-medium text-slate-700">RxDB Engine Active</span>
+              <div className="w-2 h-2 rounded-full bg-rose-500" />
+              <span className="text-sm font-medium text-slate-700">Database Engine Neutralized</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-emerald-500" />

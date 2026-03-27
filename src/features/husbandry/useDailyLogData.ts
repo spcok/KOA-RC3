@@ -1,7 +1,5 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { Subscription } from 'rxjs';
 import { LogEntry, LogType } from '../../types';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { useAnimalsData } from '../animals/useAnimalsData';
 
 export const useDailyLogData = (viewDate: string, activeCategory: string, animalId?: string) => {
@@ -15,28 +13,11 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
 
     const loadLogs = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.collections.daily_logs.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as LogEntry);
-            
-            const filtered = rawData.filter(log => 
-              (animalId ? log.animal_id === animalId : log.log_date === viewDate) && 
-              !(log as unknown as { is_deleted?: boolean }).is_deleted
-            );
-            
-            const sorted = filtered.sort((a, b) => {
-              const timeA = new Date(a.log_date || a.created_at || 0).getTime();
-              const timeB = new Date(b.log_date || b.created_at || 0).getTime();
-              return timeB - timeA;
-            });
-
-            setAllLogs(sorted);
-            setIsLogsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Daily logs loading is neutralized.");
+        if (isMounted) {
+          setAllLogs([]);
+          setIsLogsLoading(false);
+        }
       } catch (err: unknown) {
         console.error('Failed to load daily logs:', err instanceof Error ? err.message : err);
         if (isMounted) setIsLogsLoading(false);
@@ -58,14 +39,8 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
   }, [logs]);
 
   const addLogEntry = useCallback(async (entry: Partial<LogEntry>) => {
-    const db = await bootCoreDatabase();
-    const payload = {
-      ...entry,
-      id: entry.id || crypto.randomUUID(),
-      updated_at: new Date().toISOString(),
-      is_deleted: false
-    };
-    await db.collections.daily_logs.upsert(payload);
+    console.log("☢️ [Zero Dawn] Add log entry is neutralized.", entry);
+    alert("Database engine is neutralized. Log entry cannot be added.");
   }, []);
 
   const filteredAnimals = useMemo(() => {

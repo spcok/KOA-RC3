@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { Incident } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 
 export const useIncidentData = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -15,17 +13,11 @@ export const useIncidentData = () => {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.incidents.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as Incident).filter(d => !d.is_deleted);
-            const sortedData = rawData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-            setIncidents(sortedData);
-            setIsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Incident data loading is neutralized.");
+        if (isMounted) {
+          setIncidents([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load incident data:', err);
         if (isMounted) setIsLoading(false);
@@ -47,27 +39,13 @@ export const useIncidentData = () => {
   });
 
   const addIncident = async (incident: Omit<Incident, 'id'>) => {
-    const db = await bootCoreDatabase();
-    const newIncident: Incident = { 
-      ...incident, 
-      id: uuidv4(),
-      updated_at: new Date().toISOString(),
-      is_deleted: false
-    } as Incident;
-    await db.incidents.upsert(newIncident);
+    console.log("☢️ [Zero Dawn] Add incident is neutralized.", incident);
+    alert("Database engine is neutralized. Incident cannot be added.");
   };
 
   const deleteIncident = async (id: string) => {
-    const db = await bootCoreDatabase();
-    const incidentDoc = await db.incidents.findOne(id).exec();
-    if (incidentDoc) {
-      const incident = incidentDoc.toJSON();
-      await db.incidents.upsert({
-        ...incident,
-        is_deleted: true,
-        updated_at: new Date().toISOString()
-      });
-    }
+    console.log("☢️ [Zero Dawn] Delete incident is neutralized.", id);
+    alert("Database engine is neutralized. Incident cannot be deleted.");
   };
 
   return {

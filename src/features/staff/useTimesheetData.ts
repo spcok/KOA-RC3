@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
 import { Timesheet, TimesheetStatus } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
 
 export function useTimesheetData() {
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
@@ -13,17 +11,11 @@ export function useTimesheetData() {
 
     const loadData = async () => {
       try {
-        const db = await bootCoreDatabase();
-        if (!isMounted) return;
-
-        sub = db.collections.timesheets.find().$.subscribe(docs => {
-          if (isMounted) {
-            const rawData = docs.map(d => d.toJSON() as Timesheet).filter(d => !(d as unknown as { is_deleted?: boolean }).is_deleted);
-            const sortedData = rawData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-            setTimesheets(sortedData);
-            setIsLoading(false);
-          }
-        });
+        console.log("☢️ [Zero Dawn] Timesheet data loading is neutralized.");
+        if (isMounted) {
+          setTimesheets([]);
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error('Failed to load timesheet data:', err);
         if (isMounted) setIsLoading(false);
@@ -39,65 +31,28 @@ export function useTimesheetData() {
   }, []);
 
   const clockIn = async (staff_name: string) => {
-    const db = await bootCoreDatabase();
-    const newTimesheet: Timesheet = {
-      id: uuidv4(),
-      staff_name,
-      date: new Date().toISOString().split('T')[0],
-      clock_in: new Date().toISOString(),
-      status: TimesheetStatus.ACTIVE,
-      updated_at: new Date().toISOString(),
-      is_deleted: false
-    };
-    await db.collections.timesheets.upsert(newTimesheet);
+    console.log("☢️ [Zero Dawn] Clock in is neutralized.", staff_name);
+    alert("Database engine is neutralized. Clock in cannot proceed.");
   };
 
   const clockOut = async (id: string) => {
-    const db = await bootCoreDatabase();
-    const timesheetDoc = await db.collections.timesheets.findOne(id).exec();
-    if (timesheetDoc) {
-      const timesheet = timesheetDoc.toJSON();
-      await db.collections.timesheets.upsert({
-        ...timesheet,
-        clock_out: new Date().toISOString(),
-        status: TimesheetStatus.COMPLETED,
-        updated_at: new Date().toISOString()
-      });
-    }
+    console.log("☢️ [Zero Dawn] Clock out is neutralized.", id);
+    alert("Database engine is neutralized. Clock out cannot proceed.");
   };
 
   const getCurrentlyClockedInStaff = async () => {
-    const db = await bootCoreDatabase();
-    const active = await db.collections.timesheets.find({
-      selector: { 
-        status: { $eq: TimesheetStatus.ACTIVE }
-      }
-    }).exec();
-    return active.map(t => t.staff_name);
+    console.log("☢️ [Zero Dawn] Get currently clocked in staff is neutralized.");
+    return [];
   };
 
   const addTimesheet = async (timesheet: Omit<Timesheet, 'id'>) => {
-    const db = await bootCoreDatabase();
-    const newTimesheet: Timesheet = {
-      ...timesheet,
-      id: uuidv4(),
-      updated_at: new Date().toISOString(),
-      is_deleted: false
-    } as Timesheet;
-    await db.collections.timesheets.upsert(newTimesheet);
+    console.log("☢️ [Zero Dawn] Add timesheet is neutralized.", timesheet);
+    alert("Database engine is neutralized. Timesheet cannot be added.");
   };
 
   const deleteTimesheet = async (id: string) => {
-    const db = await bootCoreDatabase();
-    const timesheetDoc = await db.collections.timesheets.findOne(id).exec();
-    if (timesheetDoc) {
-      const timesheet = timesheetDoc.toJSON();
-      await db.collections.timesheets.upsert({
-        ...timesheet,
-        is_deleted: true,
-        updated_at: new Date().toISOString()
-      });
-    }
+    console.log("☢️ [Zero Dawn] Delete timesheet is neutralized.", id);
+    alert("Database engine is neutralized. Timesheet cannot be deleted.");
   };
 
   return {
