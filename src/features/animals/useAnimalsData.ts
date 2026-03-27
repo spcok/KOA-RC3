@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Animal } from '../../types';
-import { Subscription } from 'rxjs';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 export function useAnimalsData() {
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -9,13 +9,17 @@ export function useAnimalsData() {
 
   useEffect(() => {
     let isMounted = true;
-    const sub: Subscription | null = null;
 
     const loadAnimals = async () => {
       try {
-        console.log("☢️ [Zero Dawn] Animals data loading is neutralized.");
+        setIsLoading(true);
+        const db = await bootCoreDatabase();
+        if (!db || !db.collections || !db.collections.animals) return;
+
+        const animalDocs = await db.collections.animals.find().exec();
+        
         if (isMounted) {
-          setAnimals([]);
+          setAnimals(animalDocs.map(doc => doc.toJSON() as Animal));
           setIsLoading(false);
         }
       } catch (err: unknown) {
@@ -30,7 +34,6 @@ export function useAnimalsData() {
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
     };
   }, []);
 

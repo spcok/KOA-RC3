@@ -1,12 +1,7 @@
-import { createRxDatabase, RxDatabase, RxJsonSchema } from 'rxdb';
-import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
-
-interface KoaWindow extends Window {
-  __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
-}
+import { bootCoreDatabase } from './bootCoreDatabase';
 
 const SYNC_TABLES = [
   'animals', 'archived_animals', 'daily_logs', 'daily_rounds',
@@ -18,11 +13,12 @@ const SYNC_TABLES = [
   'zla_documents', 'bug_reports', 'tasks'
 ];
 
-const universalSchema: RxJsonSchema<Record<string, unknown>> = {
+// 🚨 CRITICAL FIX: additionalProperties MUST be true for Supabase wildcard sync
+const universalSchema: any = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
-  additionalProperties: false,
+  additionalProperties: true, 
   properties: {
     id: { type: 'string', maxLength: 100 },
     is_deleted: { type: ['boolean', 'null'] },
@@ -31,40 +27,10 @@ const universalSchema: RxJsonSchema<Record<string, unknown>> = {
   required: ['id']
 };
 
-const appSchemas = SYNC_TABLES.reduce((acc, table) => {
+export const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   acc[table] = { schema: universalSchema };
   return acc;
 }, {} as Record<string, any>);
-
-export const bootCoreDatabase = async (): Promise<RxDatabase> => {
-  const koaWindow = window as unknown as KoaWindow;
-
-  // 🔥 The Window Cache survives Vite HMR. No DB9 collisions.
-  if (koaWindow.__KOA_DB_PROMISE) return koaWindow.__KOA_DB_PROMISE;
-
-  console.log("🟢 [Core DB] Booting Invincible RxDB Engine v5...");
-
-  koaWindow.__KOA_DB_PROMISE = (async () => {
-    try {
-      const db = await createRxDatabase({
-        name: 'koa_manager_v5', 
-        storage: getRxStorageDexie(),
-        ignoreDuplicate: true
-      });
-
-      if (Object.keys(db.collections).length === 0) {
-        await db.addCollections(appSchemas);
-      }
-
-      return db;
-    } catch (error: any) {
-      koaWindow.__KOA_DB_PROMISE = null;
-      throw error;
-    }
-  })();
-
-  return koaWindow.__KOA_DB_PROMISE;
-};
 
 const activeReplications: RxSupabaseReplicationState<unknown>[] = [];
 const errorSubs: Subscription[] = [];
@@ -76,7 +42,7 @@ export const startCoreSync = async () => {
 
   try {
     const db = await bootCoreDatabase();
-    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v5...");
+    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v6...");
 
     await Promise.all(activeReplications.map(s => s.cancel()));
     activeReplications.length = 0;
@@ -88,7 +54,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection: db.collections[table],
-        replicationIdentifier: `koa_${table}_sync_v5`,
+        replicationIdentifier: `koa_${table}_sync_v6`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',
@@ -107,7 +73,7 @@ export const startCoreSync = async () => {
 
       activeReplications.push(state);
       errorSubs.push(state.error$.subscribe(err => {
-        if (!err.message?.includes('Offline')) console.error(`[Sync] ${table}:`, err);
+        if (!err.message?.includes('Offline')) console.error(`[Sync Error] ${table}:`, err);
       }));
     }
   } finally {

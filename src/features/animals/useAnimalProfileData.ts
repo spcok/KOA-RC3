@@ -1,31 +1,34 @@
 import { useState, useEffect } from 'react';
 import { Animal, ClinicalNote, LogEntry, Task } from '../../types';
-import { Subscription } from 'rxjs';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 export function useAnimalProfileData(animalId: string | undefined) {
   const [animal, setAnimal] = useState<Animal | null>(null);
-  const [dailyLogs, setDailyLogs] = useState<LogEntry[]>([]);
-  const [medicalLogs, setMedicalLogs] = useState<ClinicalNote[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const dailyLogs: LogEntry[] = [];
+  const medicalLogs: ClinicalNote[] = [];
+  const tasks: Task[] = [];
 
   useEffect(() => {
     if (!animalId) {
-      setTimeout(() => setIsLoading(false), 0);
+      setIsLoading(false);
       return;
     }
 
     let isMounted = true;
-    const subs: Subscription[] = [];
 
     const loadData = async () => {
       try {
-        console.log("☢️ [Zero Dawn] Animal profile data loading is neutralized.");
+        setIsLoading(true);
+        const db = await bootCoreDatabase();
+        if (!db || !db.collections || !db.collections.animals) return;
+
+        const doc = await db.collections.animals.findOne({ selector: { id: animalId } }).exec();
+        
         if (isMounted) {
-          setAnimal(null);
-          setDailyLogs([]);
-          setMedicalLogs([]);
-          setTasks([]);
+          setAnimal(doc ? (doc.toJSON() as Animal) : null);
+          // Note: Daily logs, medical logs, and tasks would also need to be fetched here
+          // based on the animalId, but the request only specified the animal itself.
           setIsLoading(false);
         }
       } catch (err) {
@@ -38,7 +41,6 @@ export function useAnimalProfileData(animalId: string | undefined) {
 
     return () => {
       isMounted = false;
-      subs.forEach(sub => sub?.unsubscribe?.());
     };
   }, [animalId]);
 

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Animal, AnimalCategory, LogType, LogEntry, Task } from '../../types';
-import { bootCoreDatabase } from '../../lib/DatabaseCore';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 export interface EnhancedAnimal extends Animal {
   todayWeight?: LogEntry;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { bootCoreDatabase, startCoreSync } from '../lib/DatabaseCore';
+import { startCoreSync } from '../lib/DatabaseCore';
+import { bootCoreDatabase } from '../lib/bootCoreDatabase';
 import { useAuthStore } from '../store/authStore';
 
 export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
