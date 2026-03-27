@@ -42,7 +42,7 @@ export const startCoreSync = async () => {
 
   try {
     const db = await bootCoreDatabase();
-    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v6...");
+    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v7...");
 
     await Promise.all(activeReplications.map(s => s.cancel()));
     activeReplications.length = 0;
@@ -54,7 +54,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection: db.collections[table],
-        replicationIdentifier: `koa_${table}_sync_v6`,
+        replicationIdentifier: `koa_${table}_sync_v7`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',

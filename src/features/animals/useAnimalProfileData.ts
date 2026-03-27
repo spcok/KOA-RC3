@@ -11,7 +11,7 @@ export function useAnimalProfileData(animalId: string | undefined) {
 
   useEffect(() => {
     if (!animalId) {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 0);
       return;
     }
 
