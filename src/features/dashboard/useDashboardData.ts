@@ -36,6 +36,9 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
       try {
         setIsLoading(true);
         const db = await bootCoreDatabase();
+        if (!db || !db.collections || !db.collections.animals || !db.collections.tasks) {
+          return;
+        }
         
         const [animalsList, archivedList, logsList, tasksList] = await Promise.all([
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

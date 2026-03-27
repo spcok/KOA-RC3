@@ -1,12 +1,8 @@
-import { createRxDatabase, RxDatabase } from 'rxdb';
-import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
-
+import { createRxDatabase, RxDatabase, RxJsonSchema } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
-
-
 
 interface KoaWindow extends Window {
   __KOA_DB_PROMISE?: Promise<RxDatabase> | null;
@@ -22,13 +18,11 @@ const SYNC_TABLES = [
   'zla_documents', 'bug_reports', 'tasks'
 ];
 
-// The Immortal Schema: Blindly accepts all columns from Supabase
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const universalSchema: any = {
+const universalSchema: RxJsonSchema<Record<string, unknown>> = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
-  additionalProperties: true,
+  additionalProperties: false,
   properties: {
     id: { type: 'string', maxLength: 100 },
     is_deleted: { type: ['boolean', 'null'] },
@@ -40,46 +34,30 @@ const universalSchema: any = {
 const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   acc[table] = { schema: universalSchema };
   return acc;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 }, {} as Record<string, any>);
 
 export const bootCoreDatabase = async (): Promise<RxDatabase> => {
   const koaWindow = window as unknown as KoaWindow;
 
-  if (koaWindow.__KOA_DB_PROMISE) {
-    return koaWindow.__KOA_DB_PROMISE;
-  }
+  // 🔥 The Window Cache survives Vite HMR. No DB9 collisions.
+  if (koaWindow.__KOA_DB_PROMISE) return koaWindow.__KOA_DB_PROMISE;
 
-  console.log("🟢 [Core DB] Booting Pristine RxDB Engine...");
+  console.log("🟢 [Core DB] Booting Invincible RxDB Engine v5...");
 
   koaWindow.__KOA_DB_PROMISE = (async () => {
     try {
       const db = await createRxDatabase({
-        name: 'koa_manager_invincible_v1', 
-        storage: wrappedValidateAjvStorage({ 
-          storage: getRxStorageDexie() 
-        }),
-        ignoreDuplicate: import.meta.env.DEV
+        name: 'koa_manager_v5', 
+        storage: getRxStorageDexie(),
+        ignoreDuplicate: true
       });
 
-      if (!db.collections.animals) {
-        try {
-          await db.addCollections(appSchemas);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
-          if (err.code === 'COL23' || err.message?.includes('COL23')) {
-            console.log("🛡️ [Core DB] HMR Collision detected. Polling for background build...");
-            while (!db.collections.animals) {
-              await new Promise(resolve => setTimeout(resolve, 50));
-            }
-          } else {
-            throw err;
-          }
-        }
+      if (Object.keys(db.collections).length === 0) {
+        await db.addCollections(appSchemas);
       }
 
       return db;
-    } catch (error: unknown) {
+    } catch (error: any) {
       koaWindow.__KOA_DB_PROMISE = null;
       throw error;
     }
@@ -98,7 +76,7 @@ export const startCoreSync = async () => {
 
   try {
     const db = await bootCoreDatabase();
-    console.log("📡 [Sync] Engaging Pristine 1:1 Supabase Sync...");
+    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v5...");
 
     await Promise.all(activeReplications.map(s => s.cancel()));
     activeReplications.length = 0;
@@ -110,7 +88,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection: db.collections[table],
-        replicationIdentifier: `invincible_${table}_sync`,
+        replicationIdentifier: `koa_${table}_sync_v5`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',
