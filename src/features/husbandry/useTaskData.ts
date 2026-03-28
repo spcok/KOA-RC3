@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Task, User, UserRole, Animal } from '../../types';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 const mockUsers: User[] = [
   { id: 'u1', email: 'john@example.com', name: 'John Doe', initials: 'JD', role: UserRole.VOLUNTEER },
@@ -11,31 +12,46 @@ export const useTaskData = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    const subs: { unsubscribe: () => void }[] = [];
+    useEffect(() => {
+        let isMounted = true;
+        const subs: { unsubscribe: () => void }[] = [];
 
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Task data loading is neutralized.");
-        if (isMounted) {
-          setTasks([]);
-          setAnimals([]);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load task data:', err);
-        if (isMounted) setIsLoading(false);
-      }
-    };
+        const loadData = async () => {
+            try {
+                const db = await bootCoreDatabase();
+                if (!db.collections || !db.collections.tasks || !db.collections.animals) {
+                    if (isMounted) setIsLoading(false);
+                    return;
+                }
 
-    loadData();
+                // Subscribe to tasks
+                const tasksSub = db.collections.tasks.find().$.subscribe(docs => {
+                    if (isMounted) {
+                        setTasks(docs.map(doc => doc.toJSON() as Task));
+                        setIsLoading(false);
+                    }
+                });
+                subs.push(tasksSub);
 
-    return () => {
-      isMounted = false;
-      subs.forEach(sub => sub.unsubscribe());
-    };
-  }, []);
+                // Subscribe to animals
+                const animalsSub = db.collections.animals.find().$.subscribe(docs => {
+                    if (isMounted) setAnimals(docs.map(doc => doc.toJSON() as Animal));
+                });
+                subs.push(animalsSub);
+
+            } catch (err) {
+                console.error('Failed to load task data:', err);
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        loadData();
+
+        return () => {
+            isMounted = false;
+            subs.forEach(sub => sub.unsubscribe());
+        };
+    }, []);
 
   const [filter, setFilter] = useState<'assigned' | 'pending' | 'completed'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,23 +76,55 @@ export const useTaskData = () => {
   }, [tasks, filter, searchTerm, currentUser.id, animals]);
 
   const addTask = async (newTask: Omit<Task, 'id'>) => {
-    console.log("☢️ [Zero Dawn] Add task is neutralized.", newTask);
-    alert("Database engine is neutralized. Task cannot be added.");
+    try {
+      const db = await bootCoreDatabase();
+      await db.collections.tasks.insert({
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        ...newTask
+      });
+    } catch (err) {
+      console.error('Failed to add task:', err);
+    }
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
-    console.log("☢️ [Zero Dawn] Update task is neutralized.", id, updates);
-    alert("Database engine is neutralized. Task cannot be updated.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
+      if (doc) {
+        await doc.patch(updates);
+      }
+    } catch (err) {
+      console.error('Failed to update task:', err);
+    }
   };
 
   const deleteTask = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Delete task is neutralized.", id);
-    alert("Database engine is neutralized. Task cannot be deleted.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.tasks.findOne({ selector: { id } }).exec();
+      if (doc) {
+        await doc.remove();
+      }
+    } catch (err) {
+      console.error('Failed to delete task:', err);
+    }
   };
 
   const toggleTaskCompletion = async (task: Task) => {
-    console.log("☢️ [Zero Dawn] Toggle task completion is neutralized.", task.id);
-    alert("Database engine is neutralized. Task completion cannot be toggled.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.tasks.findOne({ selector: { id: task.id } }).exec();
+      if (doc) {
+        await doc.patch({ 
+          completed: !task.completed,
+          completed_at: !task.completed ? new Date().toISOString() : null
+        });
+      }
+    } catch (err) {
+      console.error('Failed to toggle task completion:', err);
+    }
   };
 
   return { tasks: filteredTasks, animals, users: mockUsers, isLoading, filter, setFilter, searchTerm, setSearchTerm, addTask, updateTask, deleteTask, toggleTaskCompletion, currentUser };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, RolePermissionConfig } from '../../types';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 export function useUsersData() {
   const [users, setUsers] = useState<User[]>([]);
@@ -16,12 +17,30 @@ export function useUsersData() {
 
     const loadData = async () => {
       try {
-        console.log("☢️ [Zero Dawn] Users data loading is neutralized.");
-        if (isMounted) {
-          setUsers([]);
-          setRolePermissions([]);
-          setIsLoading(false);
+        const db = await bootCoreDatabase();
+        
+        if (!db.collections || !db.collections.users || !db.collections.role_permissions) {
+          if (isMounted) setIsLoading(false);
+          return;
         }
+
+        // Subscribe to users
+        const usersSub = db.collections.users.find().$.subscribe(docs => {
+          if (isMounted) {
+            setUsers(docs.map(doc => doc.toJSON() as User));
+            setIsLoading(false);
+          }
+        });
+        subs.push(usersSub);
+
+        // Subscribe to role_permissions
+        const rolesSub = db.collections.role_permissions.find().$.subscribe(docs => {
+          if (isMounted) {
+            setRolePermissions(docs.map(doc => doc.toJSON() as RolePermissionConfig));
+          }
+        });
+        subs.push(rolesSub);
+
       } catch (err) {
         console.error('Failed to load users data:', err);
         if (isMounted) setIsLoading(false);
@@ -38,18 +57,42 @@ export function useUsersData() {
 
   // --- SECURE USER DELETION PIPELINE ---
   const deleteUser = async (id: string) => {
-    console.log("☢️ [Zero Dawn] User deletion is neutralized.", id);
-    alert("Database engine is neutralized. User cannot be deleted.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.users.findOne({ selector: { id } }).exec();
+      if (doc) {
+        await doc.remove();
+      }
+    } catch (err) {
+      console.error('Failed to delete user:', err);
+    }
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    console.log("☢️ [Zero Dawn] User update is neutralized.", { id, updates });
-    alert("Database engine is neutralized. User cannot be updated.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.users.findOne({ selector: { id } }).exec();
+      if (doc) {
+        await doc.patch(updates);
+      }
+    } catch (err) {
+      console.error('Failed to update user:', err);
+    }
   };
 
   const updateRolePermissions = async (role: string, updates: Partial<RolePermissionConfig>) => {
-    console.log("☢️ [Zero Dawn] Role permissions update is neutralized.", { role, updates });
-    alert("Database engine is neutralized. Permissions cannot be updated.");
+    try {
+      const db = await bootCoreDatabase();
+      // For updateRolePermissions, ensure you are querying by id: role.toLowerCase()
+      const doc = await db.collections.role_permissions.findOne({ 
+        selector: { id: role.toLowerCase() } 
+      }).exec();
+      if (doc) {
+        await doc.patch(updates);
+      }
+    } catch (err) {
+      console.error('Failed to update role permissions:', err);
+    }
   };
 
   return { users, rolePermissions, isLoading, deleteUser, updateUser, updateRolePermissions, refresh };
