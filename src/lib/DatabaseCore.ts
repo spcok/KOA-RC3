@@ -1,4 +1,5 @@
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
+import { RxJsonSchema } from 'rxdb';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
 import { bootCoreDatabase } from './bootCoreDatabase';
@@ -14,11 +15,12 @@ const SYNC_TABLES = [
 ];
 
 // 🚨 CRITICAL FIX: additionalProperties MUST be true for Supabase wildcard sync
-const universalSchema: any = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const universalSchema: RxJsonSchema<any> = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
-  additionalProperties: true, 
+  additionalProperties: true as any, 
   properties: {
     id: { type: 'string', maxLength: 100 },
     is_deleted: { type: ['boolean', 'null'] },
@@ -30,7 +32,8 @@ const universalSchema: any = {
 export const appSchemas = SYNC_TABLES.reduce((acc, table) => {
   acc[table] = { schema: universalSchema };
   return acc;
-}, {} as Record<string, any>);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+}, {} as Record<string, { schema: RxJsonSchema<any> }>);
 
 const activeReplications: RxSupabaseReplicationState<unknown>[] = [];
 const errorSubs: Subscription[] = [];

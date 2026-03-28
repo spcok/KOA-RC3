@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Subscription } from 'rxjs';
+import { RxDocument } from 'rxdb';
 import { useAuthStore } from '../store/authStore';
 import { bootCoreDatabase } from '../lib/bootCoreDatabase';
+import { User, RolePermissionConfig } from '../types';
 
 const lockedPermissions = {
   isAdmin: false, isOwner: false, isSeniorKeeper: false, isVolunteer: false, isStaff: false,
@@ -34,8 +37,8 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
 
   useEffect(() => {
     let isMounted = true;
-    let userSub: any = null;
-    let roleSub: any = null;
+    let userSub: Subscription | null = null;
+    let roleSub: Subscription | null = null;
 
     const setupReactivePermissions = async () => {
       if (!currentUser?.id) {
@@ -53,7 +56,7 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
         }
 
         // 1. Listen to the local 'users' table. When the sync finishes, this fires again automatically!
-        userSub = db.collections.users.findOne({ selector: { id: currentUser.id } }).$.subscribe((userDoc: any) => {
+        userSub = db.collections.users.findOne({ selector: { id: currentUser.id } }).$.subscribe((userDoc: RxDocument<User> | null) => {
           
           // Pull role from local DB first, fallback to the Supabase auth token, or default to GUEST
           const rawRole = userDoc?.get('role') || currentUser?.role || 'GUEST';
@@ -74,7 +77,7 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
           // 2. Listen to the role_permissions table based on the discovered role
           if (roleSub) roleSub.unsubscribe(); // Clean up if the role upgrades during sync
           
-          roleSub = db.collections.role_permissions.findOne({ selector: { id: currentRole.toLowerCase() } }).$.subscribe((roleDoc: any) => {
+          roleSub = db.collections.role_permissions.findOne({ selector: { id: currentRole.toLowerCase() } }).$.subscribe((roleDoc: RxDocument<RolePermissionConfig> | null) => {
             if (isMounted) {
               if (roleDoc) {
                 console.log(`🔓 [Permissions] Live sync unlocked role: ${currentRole}`);

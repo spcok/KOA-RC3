@@ -2,10 +2,16 @@ import { createRxDatabase, RxDatabase } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { appSchemas } from './DatabaseCore';
 
+declare global {
+  interface Window {
+    __KOA_DB_PROMISE: Promise<RxDatabase> | null;
+  }
+}
+
 export const bootCoreDatabase = async (): Promise<RxDatabase> => {
   // 1. The Global Lock: Attached to the window so it survives Vite HMR reloads
-  if ((window as any).__KOA_DB_PROMISE) {
-    return (window as any).__KOA_DB_PROMISE;
+  if (window.__KOA_DB_PROMISE) {
+    return window.__KOA_DB_PROMISE;
   }
 
   console.log("🟢 [Core DB] Booting Invincible RxDB Engine v7...");
@@ -23,9 +29,10 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
         if (Object.keys(db.collections).length === 0) {
           await db.addCollections(appSchemas);
         }
-      } catch (colError: any) {
+      } catch (colError: unknown) {
         // 🛡️ The Loop Severance: If collections already exist (COL23), we swallow and proceed.
-        if (colError.code === 'COL23' || colError.message?.includes('COL23')) {
+        const error = colError as { code?: string; message?: string };
+        if (error.code === 'COL23' || error.message?.includes('COL23')) {
           console.warn("🛡️ [Core DB] Collection Collision Swallowed. Proceeding with existing collections.");
         } else {
           throw colError;
@@ -35,14 +42,14 @@ export const bootCoreDatabase = async (): Promise<RxDatabase> => {
       return db;
     } catch (error) {
       // 4. On failure, clear the lock so the app can attempt a reboot
-      (window as any).__KOA_DB_PROMISE = null;
+      window.__KOA_DB_PROMISE = null;
       console.error("🚨 [Core DB] Fatal Boot Error:", error);
       throw error;
     }
   })();
 
   // 5. Cache the promise globally IMMEDIATELY, before the async work finishes
-  (window as any).__KOA_DB_PROMISE = initPromise;
+  window.__KOA_DB_PROMISE = initPromise;
   
   return initPromise;
 };
