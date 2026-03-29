@@ -19,7 +19,7 @@ const baseProperties = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const appSchemas: Record<string, RxJsonSchema<any>> = {
+export const appSchemas: Record<string, RxJsonSchema<any>> = {
   animals: {
     version: 0,
     primaryKey: 'id',
