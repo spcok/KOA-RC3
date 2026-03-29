@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../../../lib/supabase';
+import React, { useState, useEffect } from 'react';
 import { Download, Bug, Wifi, WifiOff, Clock, User, Link, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNetworkStatus } from '../../../hooks/useNetworkStatus';
+import { bootCoreDatabase } from '../../../lib/bootCoreDatabase';
+import { Subscription } from 'rxjs';
+import { RxDocument } from 'rxdb';
 
 interface BugReport {
   id: string;
@@ -25,30 +27,29 @@ const BugReports: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { isOnline } = useNetworkStatus();
 
-  const fetchReports = useCallback(async () => {
-    if (!isOnline) return;
-    
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('bug_reports')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setReports(data || []);
-    } catch (err) {
-      console.error('Error fetching bug reports:', err);
-      setError('Failed to load bug reports from server.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isOnline]);
-
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    let sub: Subscription;
+    
+    const init = async () => {
+      try {
+        const db = await bootCoreDatabase();
+        sub = db.bug_reports.find({
+          selector: {},
+          sort: [{ created_at: 'desc' }]
+        }).$.subscribe((data: RxDocument<BugReport>[]) => {
+          setReports(data.map(d => d.toJSON()));
+          setIsLoading(false);
+        });
+      } catch (err) {
+        console.error('Error initializing bug reports:', err);
+        setError('Failed to load bug reports.');
+        setIsLoading(false);
+      }
+    };
+
+    init();
+    return () => sub?.unsubscribe();
+  }, []);
 
   const parseMessage = (message: string): ParsedMessage => {
     const lines = message.split('\n');
@@ -72,18 +73,10 @@ const BugReports: React.FC = () => {
 
   const handleResolve = async (id: string) => {
     try {
-      // Optimistic update
-      const originalReports = [...reports];
-      setReports(prev => prev.filter(r => r.id !== id));
-
-      const { error } = await supabase
-        .from('bug_reports')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        setReports(originalReports);
-        throw error;
+      const db = await bootCoreDatabase();
+      const doc = await db.bug_reports.findOne(id).exec();
+      if (doc) {
+        await doc.remove();
       }
     } catch (err) {
       console.error('Error resolving bug report:', err);
@@ -176,8 +169,8 @@ const BugReports: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchReports}
-            disabled={isLoading || !isOnline}
+            onClick={() => window.location.reload()}
+            disabled={isLoading}
             className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
             title="Refresh reports"
           >

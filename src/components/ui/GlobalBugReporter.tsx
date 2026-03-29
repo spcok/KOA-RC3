@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquareWarning, X, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuthStore } from '../../store/authStore';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
 const GlobalBugReporter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +36,9 @@ const GlobalBugReporter: React.FC = () => {
     };
 
     try {
-      console.log("☢️ [Zero Dawn] Bug report submission is neutralized.", payload);
+      const db = await bootCoreDatabase();
+      await db.bug_reports.insert(payload);
+      
       setIsSuccess(true);
       setTitle('');
       setMessage('');
