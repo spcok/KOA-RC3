@@ -20,6 +20,7 @@ const universalSchema: RxJsonSchema<any> = {
   version: 0,
   primaryKey: 'id',
   type: 'object',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   additionalProperties: true as any, 
   properties: {
     id: { type: 'string', maxLength: 100 },

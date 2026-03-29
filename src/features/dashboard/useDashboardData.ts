@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { Subscription } from 'rxjs';
 import { Animal, AnimalCategory, LogType, LogEntry, Task } from '../../types';
 import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
@@ -31,37 +32,50 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
 
   useEffect(() => {
     let isMounted = true;
+    const subs: Subscription[] = [];
 
     const loadData = async () => {
       try {
         setIsLoading(true);
         const db = await bootCoreDatabase();
-        if (!db || !db.collections || !db.collections.animals || !db.collections.tasks) {
+        
+        if (!db || !db.collections || !db.collections.animals || !db.collections.archived_animals || !db.collections.daily_logs || !db.collections.tasks) {
+          if (isMounted) setIsLoading(false);
           return;
         }
         
-        const [animalsList, archivedList, logsList, tasksList] = await Promise.all([
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (db as any).animals.find().exec(),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (db as any).archived_animals.find().exec(),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (db as any).daily_logs.find().exec(),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (db as any).tasks.find().exec()
-        ]);
+        // Animals
+        subs.push(db.collections.animals.find().$.subscribe(docs => {
+          if (isMounted) {
+            setLiveAnimals(docs.map(doc => doc.toJSON() as Animal));
+            setIsLoading(false);
+          }
+        }));
 
-        if (isMounted) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setLiveAnimals(animalsList.map((doc: any) => doc.toJSON() as Animal));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setArchivedAnimals(archivedList.map((doc: any) => doc.toJSON() as Animal));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setLogs(logsList.map((doc: any) => doc.toJSON() as LogEntry));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setTasks(tasksList.map((doc: any) => doc.toJSON() as Task));
-          setIsLoading(false);
-        }
+        // Archived Animals
+        subs.push(db.collections.archived_animals.find().$.subscribe(docs => {
+          if (isMounted) {
+            setArchivedAnimals(docs.map(doc => doc.toJSON() as Animal));
+            setIsLoading(false);
+          }
+        }));
+
+        // Daily Logs
+        subs.push(db.collections.daily_logs.find().$.subscribe(docs => {
+          if (isMounted) {
+            setLogs(docs.map(doc => doc.toJSON() as LogEntry));
+            setIsLoading(false);
+          }
+        }));
+
+        // Tasks
+        subs.push(db.collections.tasks.find().$.subscribe(docs => {
+          if (isMounted) {
+            setTasks(docs.map(doc => doc.toJSON() as Task));
+            setIsLoading(false);
+          }
+        }));
+
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
         if (isMounted) setIsLoading(false);
@@ -72,6 +86,7 @@ export function useDashboardData(activeTab: AnimalCategory | 'ARCHIVED', viewDat
 
     return () => {
       isMounted = false;
+      subs.forEach(sub => sub.unsubscribe());
     };
   }, [viewDate]);
 

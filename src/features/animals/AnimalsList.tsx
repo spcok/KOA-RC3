@@ -1,41 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Animal } from '../../types';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAnimalsData } from './useAnimalsData';
+import { useArchivedAnimalsData } from './useArchivedAnimalsData';
 
 // 🚨 1. Removed the 'export' keyword and props from here
 const AnimalsList = () => {
   const [activeTab, setActiveTab] = useState<'live' | 'archived'>('live');
-  const [archivedAnimals, setArchivedAnimals] = useState<Animal[]>([]);
   
   const permissions = usePermissions();
   const navigate = useNavigate();
   
   // 🚨 2. Fetching the live animals directly inside the component
   const { animals } = useAnimalsData(); 
-
-  useEffect(() => {
-    let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
-
-    const loadData = async () => {
-      try {
-        console.log("☢️ [Zero Dawn] Archived animals loading is neutralized.");
-        if (isMounted) {
-          setArchivedAnimals([]);
-        }
-      } catch (err) {
-        console.error('Failed to load archived animals:', err);
-      }
-    };
-
-    loadData();
-    return () => {
-      isMounted = false;
-      if (sub) sub.unsubscribe();
-    };
-  }, []);
+  const { archivedAnimals } = useArchivedAnimalsData();
 
   const canViewArchived = permissions.isAdmin || permissions.isOwner;
 

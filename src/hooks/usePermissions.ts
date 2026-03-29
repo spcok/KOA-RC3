@@ -46,12 +46,32 @@ export function usePermissions(): Record<string, boolean | string> & { isLoading
           return;
       }
 
+      // Extract role
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawRole = currentUser?.role || (currentUser as any)?.user_metadata?.role || 'GUEST';
+      const currentRole = String(rawRole).toUpperCase();
+
+      // Fast-track System Owners & Admins
+      if (currentRole === 'OWNER' || currentRole === 'ADMIN') {
+          if (isMounted) {
+            setPermissions({ 
+              ...unlockedPermissions, role: currentRole, isAdmin: true, isOwner: currentRole === 'OWNER',
+              isSeniorKeeper: true, isVolunteer: false, isStaff: true
+            });
+            setIsLoading(false);
+          }
+          return;
+      }
+
       try {
         const db = await bootCoreDatabase();
         
-        if (!db || !db.collections || !db.collections.users || !db.collections.role_permissions) {
-          console.warn("⚠️ [Permissions] Collections not ready yet. Waiting...");
-          if (isMounted) setIsLoading(false);
+        if (!db.collections || !db.collections.users || !db.collections.role_permissions) {
+          console.warn("⚠️ [Permissions] Collections not ready yet.");
+          if (isMounted) {
+            setPermissions({ ...lockedPermissions, role: 'GUEST' });
+            setIsLoading(false);
+          }
           return;
         }
 
