@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Subscription } from 'rxjs';
 import { AnimalCategory, OperationalList } from '../types';
+import { bootCoreDatabase } from '../lib/bootCoreDatabase';
 
 export function useOperationalLists(category: AnimalCategory = AnimalCategory.ALL) {
   const [lists, setLists] = useState<OperationalList[]>([]);
@@ -7,15 +9,24 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
 
   useEffect(() => {
     let isMounted = true;
-    const sub: { unsubscribe: () => void } | null = null;
+    let sub: Subscription | null = null;
 
     const loadData = async () => {
       try {
-        console.log("☢️ [Zero Dawn] Operational lists loading is neutralized.");
-        if (isMounted) {
-          setLists([]);
-          setIsLoading(false);
+        const db = await bootCoreDatabase();
+        if (!db || !db.collections || !db.collections.operational_lists) {
+          if (isMounted) setIsLoading(false);
+          return;
         }
+
+        sub = db.collections.operational_lists
+          .find({ selector: { is_deleted: false } })
+          .$.subscribe(docs => {
+            if (isMounted) {
+              setLists(docs.map(doc => doc.toJSON() as OperationalList));
+              setIsLoading(false);
+            }
+          });
       } catch (err) {
         console.error('Failed to load operational lists:', err);
         if (isMounted) setIsLoading(false);
@@ -44,18 +55,54 @@ export function useOperationalLists(category: AnimalCategory = AnimalCategory.AL
     .sort((a, b) => a.value.localeCompare(b.value));
 
   const addListItem = async (type: 'food' | 'method' | 'location' | 'event', value: string, itemCategory: AnimalCategory = category) => {
-    console.log("☢️ [Zero Dawn] Add list item is neutralized.", { type, value, itemCategory });
-    alert("Database engine is neutralized. Item cannot be added.");
+    try {
+      const db = await bootCoreDatabase();
+      await db.collections.operational_lists.insert({
+        id: crypto.randomUUID(),
+        type,
+        value,
+        category: itemCategory,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Failed to add list item:', error);
+      throw error;
+    }
   };
 
   const updateListItem = async (id: string, value: string) => {
-    console.log("☢️ [Zero Dawn] Update list item is neutralized.", { id, value });
-    alert("Database engine is neutralized. Item cannot be updated.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.operational_lists.findOne(id).exec();
+      if (doc) {
+        await doc.patch({ 
+          value,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update list item:', error);
+      throw error;
+    }
   };
 
   const removeListItem = async (id: string) => {
-    console.log("☢️ [Zero Dawn] Remove list item is neutralized.", id);
-    alert("Database engine is neutralized. Item cannot be removed.");
+    try {
+      const db = await bootCoreDatabase();
+      const doc = await db.collections.operational_lists.findOne(id).exec();
+      if (doc) {
+        // Soft delete for sync
+        await doc.patch({ 
+          is_deleted: true,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Failed to remove list item:', error);
+      throw error;
+    }
   };
 
   return {

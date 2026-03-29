@@ -187,6 +187,7 @@ export interface Animal {
   distribution_map_url?: string;
   water_tipping_temp?: number;
   acquisition_type?: 'BORN' | 'TRANSFERRED_IN' | 'RESCUE' | 'UNKNOWN';
+  created_at?: string;
   updated_at?: string;
   is_deleted?: boolean;
 }

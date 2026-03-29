@@ -6,6 +6,7 @@ import { useAnimalForm } from './useAnimalForm';
 import { getAnimalIntelligence } from '../../services/geminiService';
 import { convertToGrams, convertFromGrams } from '../../services/weightUtils';
 import { useOperationalLists } from '../../hooks/useOperationalLists';
+import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '../../utils/cropImage';
 import { queueFileUpload } from '../../lib/storageEngine';
@@ -41,15 +42,42 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
 
   useEffect(() => {
     let isMounted = true;
-    const parentMobsSub: Subscription | null = null;
-    const linkedChildrenSub: Subscription | null = null;
+    let parentMobsSub: Subscription | null = null;
+    let linkedChildrenSub: Subscription | null = null;
 
     const loadData = async () => {
       try {
-        console.log("☢️ [Zero Dawn] Animal form modal data loading is neutralized.");
-        if (isMounted) {
-          setParentMobs([]);
-          setLinkedChildrenCount(0);
+        const db = await bootCoreDatabase();
+        if (!db || !db.collections || !db.collections.animals) return;
+
+        // Fetch potential parent mobs
+        parentMobsSub = db.collections.animals
+          .find({
+            selector: {
+              is_deleted: false,
+              entity_type: EntityType.GROUP
+            }
+          })
+          .$.subscribe(docs => {
+            if (isMounted) {
+              setParentMobs(docs.map(doc => doc.toJSON() as Animal));
+            }
+          });
+
+        // If this is a group, count its linked children
+        if (initialData?.id && initialData.entity_type === EntityType.GROUP) {
+          linkedChildrenSub = db.collections.animals
+            .find({
+              selector: {
+                is_deleted: false,
+                parent_mob_id: initialData.id
+              }
+            })
+            .$.subscribe(docs => {
+              if (isMounted) {
+                setLinkedChildrenCount(docs.length);
+              }
+            });
         }
       } catch (error) {
         console.error('Failed to load modal data:', error);
@@ -63,7 +91,7 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       if (parentMobsSub) parentMobsSub.unsubscribe();
       if (linkedChildrenSub) linkedChildrenSub.unsubscribe();
     };
-  }, [initialData?.id]);
+  }, [initialData?.id, initialData?.entity_type]);
 
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -162,11 +190,24 @@ const AnimalFormModal: React.FC<AnimalFormModalProps> = ({ isOpen, onClose, init
       weight_unit: weightUnit === 'lb' ? 'lbs_oz' : weightUnit
     };
     try {
-      console.log("☢️ [Zero Dawn] Animal form submission is neutralized.", payload);
-      alert("Database engine is neutralized. Animal record cannot be saved.");
+      const db = await bootCoreDatabase();
+      
+      if (!db || !db.collections || !db.collections.animals) {
+        throw new Error("Local database is not fully initialized. Please try again in a second.");
+      }
+
+      await db.collections.animals.upsert({
+        ...payload,
+        id: targetId,
+        updated_at: new Date().toISOString(),
+        created_at: initialData?.created_at || new Date().toISOString(),
+        is_deleted: false
+      });
       onClose();
     } catch (error) {
       console.error('Failed to save animal:', error);
+      const message = error instanceof Error ? error.message : "Failed to save record. Please check your connection.";
+      alert(message);
     }
   }, (errors) => {
     // Strip the DOM 'ref' from the errors object before logging to prevent Circular JSON crashes in the global bug reporter

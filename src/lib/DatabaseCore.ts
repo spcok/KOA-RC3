@@ -1,40 +1,7 @@
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
-import { RxJsonSchema } from 'rxdb';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
-import { bootCoreDatabase } from './bootCoreDatabase';
-
-const SYNC_TABLES = [
-  'animals', 'archived_animals', 'daily_logs', 'daily_rounds',
-  'medical_logs', 'mar_charts', 'quarantine_records',
-  'internal_movements', 'external_transfers', 'shifts',
-  'holidays', 'timesheets', 'maintenance_logs', 'incidents',
-  'first_aid_logs', 'safety_drills', 'operational_lists',
-  'users', 'organisations', 'role_permissions', 'contacts',
-  'zla_documents', 'bug_reports', 'tasks'
-];
-
-// 🚨 CRITICAL FIX: additionalProperties MUST be true for Supabase wildcard sync
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const universalSchema: RxJsonSchema<any> = {
-  version: 0,
-  primaryKey: 'id',
-  type: 'object',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  additionalProperties: true as any, 
-  properties: {
-    id: { type: 'string', maxLength: 100 },
-    is_deleted: { type: ['boolean', 'null'] },
-    updated_at: { type: ['string', 'null'] }
-  },
-  required: ['id']
-};
-
-export const appSchemas = SYNC_TABLES.reduce((acc, table) => {
-  acc[table] = { schema: universalSchema };
-  return acc;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-}, {} as Record<string, { schema: RxJsonSchema<any> }>);
+import { bootCoreDatabase, SYNC_TABLES } from './bootCoreDatabase';
 
 const activeReplications: RxSupabaseReplicationState<unknown>[] = [];
 const errorSubs: Subscription[] = [];
