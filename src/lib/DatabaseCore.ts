@@ -1,7 +1,8 @@
 import { replicateSupabase, RxSupabaseReplicationState } from 'rxdb/plugins/replication-supabase';
 import { supabase } from './supabase';
 import { Subscription } from 'rxjs';
-import { bootCoreDatabase, SYNC_TABLES } from './bootCoreDatabase';
+import { bootCoreDatabase } from './bootCoreDatabase';
+import { SYNC_TABLES } from './appSchemas';
 
 const activeReplications: RxSupabaseReplicationState<unknown>[] = [];
 const errorSubs: Subscription[] = [];
@@ -13,7 +14,7 @@ export const startCoreSync = async () => {
 
   try {
     const db = await bootCoreDatabase();
-    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v16...");
+    console.log("📡 [Sync] Engaging 1:1 Supabase Sync v17...");
 
     await Promise.all(activeReplications.map(s => s.cancel()));
     activeReplications.length = 0;
@@ -25,7 +26,7 @@ export const startCoreSync = async () => {
 
       const state = replicateSupabase({
         collection: db.collections[table],
-        replicationIdentifier: `koa_${table}_sync_v16`,
+        replicationIdentifier: `koa_${table}_sync_v17`,
         client: supabase,
         tableName: table,
         deletedField: 'is_deleted',
