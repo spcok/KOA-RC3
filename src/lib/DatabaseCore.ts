@@ -32,11 +32,21 @@ export const startCoreSync = async () => {
         deletedField: 'is_deleted',
         pull: { batchSize: 100 },
         push: {
-          modifier: (doc: Record<string, unknown>) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          modifier: (doc: Record<string, any>) => {
             const clean = { ...doc };
+            
+            // Translate RxDB tombstone to ZLA-compliant archive flag
+            if (clean._deleted === true) {
+              clean.is_deleted = true;
+            }
+            
+            // Strip internal RxDB protocols so Supabase accepts the payload
             delete clean._rev;
             delete clean._meta;
             delete clean._attachments;
+            delete clean._deleted; 
+            
             return clean;
           }
         },
@@ -44,8 +54,21 @@ export const startCoreSync = async () => {
       });
 
       activeReplications.push(state);
-      errorSubs.push(state.error$.subscribe(err => {
-        if (!err.message?.includes('Offline')) console.error(`[Sync Error] ${table}:`, err);
+
+      // Ultra-Verbose X-Rays
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      errorSubs.push(state.error$.subscribe((error: any) => {
+        console.error(`🚨 [Sync X-Ray] ERROR in table '${table}':`, error);
+      }));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      errorSubs.push(state.received$.subscribe((data: any) => {
+        console.log(`📥 [Sync X-Ray] '${table}' pulled ${data.length} records from Cloud.`);
+      }));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      errorSubs.push(state.sent$.subscribe((data: any) => {
+        console.log(`📤 [Sync X-Ray] '${table}' pushed ${data.length} records to Cloud.`);
       }));
     }
   } finally {
