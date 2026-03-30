@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { startCoreSync } from '../lib/DatabaseCore';
+import { useEffect, useState } from 'react';
+import { Provider } from 'rxdb/plugins/react';
 import { bootCoreDatabase } from '../lib/bootCoreDatabase';
+import { startCoreSync } from '../lib/DatabaseCore';
 import { useAuthStore } from '../store/authStore';
+import { RxDatabase } from 'rxdb';
 
 export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const { session } = useAuthStore();
+  const [db, setDb] = useState<RxDatabase | null>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,11 +15,14 @@ export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ ch
     let isMounted = true;
     const initDb = async () => {
       try {
-        await bootCoreDatabase();
+        const database = await bootCoreDatabase();
         if (session) {
            startCoreSync().catch(e => console.warn(e));
         }
-        if (isMounted) setIsBooting(false);
+        if (isMounted) {
+          setDb(database);
+          setIsBooting(false);
+        }
       } catch (err: unknown) {
         if (isMounted) setError(err instanceof Error ? err.message : "Failed to initialize local database.");
       }
@@ -35,7 +41,7 @@ export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ ch
     );
   }
 
-  if (isBooting) {
+  if (isBooting || !db) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#18181b]">
         <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6"></div>
@@ -46,5 +52,5 @@ export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ ch
     );
   }
 
-  return <>{children}</>;
+  return <Provider db={db}>{children}</Provider>;
 };

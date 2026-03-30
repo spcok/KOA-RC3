@@ -35,7 +35,6 @@ export const useAnimalsData = () => {
     };
 
     init();
-
     return () => {
       isMounted = false;
       if (sub) sub.unsubscribe();
