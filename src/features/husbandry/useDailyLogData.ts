@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react';
 import { LogEntry, LogType } from '../../types';
 import { useAnimalsData } from '../animals/useAnimalsData';
 import { useDbStore } from '../../store/dbStore';
-import { Subscription } from 'rxjs';
+import { supabase } from '../../lib/supabase';
 
 export const useDailyLogData = (viewDate: string, activeCategory: string, animalId?: string) => {
   const db = useDbStore(state => state.db);
@@ -11,44 +11,55 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
   const [isLogsLoading, setIsLogsLoading] = useState(true);
 
   useEffect(() => {
-    // Safely wait for the database and table to be fully attached
-    if (!db || !db.collections || !db.collections.daily_logs) {
-      return;
-    }
-
-    let sub: Subscription | null = null;
     let isMounted = true;
 
     const loadLogs = async () => {
       try {
-        // NO SELECTOR
-        const query = db.collections.daily_logs.find();
+        // Online Primary
+        const { data, error } = await supabase.from('daily_logs').select('*');
+        
+        if (error) throw error;
 
-        // 1. Initial Native Fetch
-        const rawDocs = await query.exec();
-        if (isMounted) {
+        if (data && isMounted) {
+          // JS Filtering
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const cleanData = JSON.parse(JSON.stringify(rawDocs.map((d: any) => typeof d.toJSON === 'function' ? d.toJSON() : d)));
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const activeLogs = cleanData.filter((log: any) => !log.is_deleted);
+          const activeLogs = data.filter((log: any) => !log.is_deleted);
           setAllLogs(activeLogs);
           setIsLogsLoading(false);
-        }
 
-        // 2. Background Listener
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sub = query.$.subscribe((docs: any[]) => {
-          if (isMounted) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const updatedData = JSON.parse(JSON.stringify(docs.map((d: any) => typeof d.toJSON === 'function' ? d.toJSON() : d)));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const activeLogs = updatedData.filter((log: any) => !log.is_deleted);
-            setAllLogs(activeLogs);
+          // Background Cache
+          if (db?.collections?.daily_logs) {
+            try {
+              await db.collections.daily_logs.bulkUpsert(data);
+            } catch (cacheErr) {
+              console.error("Failed to cache daily logs to RxDB:", cacheErr);
+            }
           }
-        });
+        }
       } catch (err) {
-        console.error('Failed to load daily logs:', err);
-        if (isMounted) setIsLogsLoading(false);
+        console.warn("Supabase fetch failed, falling back to RxDB cache:", err);
+        
+        // Offline Failover
+        if (db?.collections?.daily_logs) {
+          try {
+            const query = db.collections.daily_logs.find();
+            const rawDocs = await query.exec();
+            
+            if (isMounted) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const cleanData = JSON.parse(JSON.stringify(rawDocs.map((d: any) => typeof d.toJSON === 'function' ? d.toJSON() : d)));
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const activeLogs = cleanData.filter((log: any) => !log.is_deleted);
+              setAllLogs(activeLogs);
+              setIsLogsLoading(false);
+            }
+          } catch (localErr) {
+            console.error("Failed to load daily logs from RxDB:", localErr);
+            if (isMounted) setIsLogsLoading(false);
+          }
+        } else {
+          if (isMounted) setIsLogsLoading(false);
+        }
       }
     };
 
@@ -56,7 +67,6 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
 
     return () => {
       isMounted = false;
-      if (sub) sub.unsubscribe();
     };
   }, [db, viewDate, animalId]);
 
