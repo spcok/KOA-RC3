@@ -10,31 +10,46 @@ export const useAnimalsData = () => {
 
   useEffect(() => {
     if (!db?.collections?.animals) {
+      setTimeout(() => setIsLoading(false), 0);
       return;
     }
 
     let sub: Subscription | null = null;
-    
-    try {
-      const query = db.collections.animals.find({
-        selector: { is_deleted: false, archived: false }
-      });
+    let isMounted = true;
 
-      // Synchronous subscription using $$ for pure JSON
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sub = (query.$$ as any).subscribe((results: Animal[]) => {
-        setAnimals(results);
-        setIsLoading(false);
-      });
-    } catch (err) {
-      console.error("Failed to subscribe to animals:", err);
-      setTimeout(() => setIsLoading(false), 0);
-    }
+    const loadData = async () => {
+      try {
+        const query = db.collections.animals.find({
+          selector: { is_deleted: false, archived: false }
+        });
+
+        // 1. BRUTE FORCE INITIAL FETCH
+        const initialResults = await query.exec();
+        if (isMounted) {
+          setAnimals(initialResults.map(d => d.toJSON() as Animal));
+          setIsLoading(false);
+        }
+
+        // 2. BACKGROUND LISTENER FOR FUTURE SYNC UPDATES
+        sub = query.$.subscribe(results => {
+          if (isMounted) {
+            setAnimals(results.map(d => d.toJSON() as Animal));
+          }
+        });
+
+      } catch (err) {
+        console.error("Failed to load animals:", err);
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadData();
 
     return () => {
+      isMounted = false;
       if (sub) sub.unsubscribe();
     };
-  }, [db]); // Re-run if db changes
+  }, [db]); 
 
   return { animals, isLoading };
 };

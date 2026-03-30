@@ -12,28 +12,42 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
 
   useEffect(() => {
     if (!db?.collections?.daily_logs) {
+      setTimeout(() => setIsLogsLoading(false), 0);
       return;
     }
 
     let sub: Subscription | null = null;
+    let isMounted = true;
 
-    try {
-      const query = db.collections.daily_logs.find({
-        selector: { is_deleted: false }
-      });
-      
-      // Synchronous subscription using $$ for pure JSON
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sub = (query.$$ as any).subscribe((docs: LogEntry[]) => {
-        setAllLogs(docs);
-        setIsLogsLoading(false);
-      });
-    } catch (err) {
-      console.error('Failed to load daily logs:', err);
-      setTimeout(() => setIsLogsLoading(false), 0);
-    }
+    const loadLogs = async () => {
+      try {
+        const query = db.collections.daily_logs.find({
+          selector: { is_deleted: false }
+        });
+
+        // 1. BRUTE FORCE INITIAL FETCH
+        const initialResults = await query.exec();
+        if (isMounted) {
+          setAllLogs(initialResults.map(d => d.toJSON() as LogEntry));
+          setIsLogsLoading(false);
+        }
+
+        // 2. BACKGROUND LISTENER FOR FUTURE SYNC UPDATES
+        sub = query.$.subscribe(docs => {
+          if (isMounted) {
+            setAllLogs(docs.map(doc => doc.toJSON() as LogEntry));
+          }
+        });
+      } catch (err) {
+        console.error('Failed to load daily logs:', err);
+        if (isMounted) setIsLogsLoading(false);
+      }
+    };
+
+    loadLogs();
 
     return () => {
+      isMounted = false;
       if (sub) sub.unsubscribe();
     };
   }, [db, viewDate, animalId]);
