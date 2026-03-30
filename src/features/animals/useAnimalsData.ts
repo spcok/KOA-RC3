@@ -1,46 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Subscription } from 'rxjs';
-import { Animal } from '../../types';
+import { useState, useEffect } from 'react';
 import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
 
-export function useAnimalsData() {
-  const [animals, setAnimals] = useState<Animal[]>([]);
+export const useAnimalsData = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [animals, setAnimals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let sub: any;
     let isMounted = true;
-    let sub: Subscription | null = null;
-
-    const loadAnimals = async () => {
+    
+    const init = async () => {
       try {
-        setIsLoading(true);
         const db = await bootCoreDatabase();
-        
-        if (!db || !db.collections || !db.collections.animals) {
-          if (isMounted) setIsLoading(false);
-          return;
-        }
+        if (!db?.collections?.animals || !isMounted) return;
 
-        // 5. Setup a reactive RxJS subscription
-        sub = db.collections.animals
-          .find({ selector: { is_deleted: false } })
-          .$.subscribe(docs => {
-            if (isMounted) {
-              setAnimals(docs.map(doc => doc.toJSON() as Animal));
-              setIsLoading(false);
-            }
-          });
+        // Establish the live query pipeline, filtering out archived/deleted
+        const query = db.collections.animals.find({
+          selector: { is_deleted: false, archived: false }
+        });
 
-      } catch (err: unknown) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error('Unknown error loading animals'));
-          setIsLoading(false);
-        }
+        // Subscribe to changes (this fires immediately with current data, and again on any change/sync)
+        sub = query.$.subscribe(results => {
+          if (isMounted) {
+            setAnimals(results.map(d => d.toJSON()));
+            setIsLoading(false);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to subscribe to animals:", err);
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    loadAnimals();
+    init();
 
     return () => {
       isMounted = false;
@@ -48,53 +42,5 @@ export function useAnimalsData() {
     };
   }, []);
 
-  const addAnimal = useCallback(async (animal: Omit<Animal, 'id'>) => {
-    try {
-      const db = await bootCoreDatabase();
-      await db.collections.animals.insert({
-        ...animal,
-        id: crypto.randomUUID(),
-        is_deleted: false,
-        updated_at: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error('Failed to add animal:', err);
-      throw err;
-    }
-  }, []);
-
-  const updateAnimal = useCallback(async (id: string, updates: Partial<Animal>) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.animals.findOne(id).exec();
-      if (doc) {
-        await doc.patch({
-          ...updates,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to update animal:', err);
-      throw err;
-    }
-  }, []);
-
-  const deleteAnimal = useCallback(async (id: string) => {
-    try {
-      const db = await bootCoreDatabase();
-      const doc = await db.collections.animals.findOne(id).exec();
-      if (doc) {
-        // Soft delete for sync engine
-        await doc.patch({
-          is_deleted: true,
-          updated_at: new Date().toISOString()
-        });
-      }
-    } catch (err) {
-      console.error('Failed to delete animal:', err);
-      throw err;
-    }
-  }, []);
-
-  return { animals, isLoading, error, addAnimal, updateAnimal, deleteAnimal };
-}
+  return { animals, isLoading };
+};
