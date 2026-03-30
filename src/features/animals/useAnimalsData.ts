@@ -1,39 +1,41 @@
 import { useState, useEffect } from 'react';
 import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { Subscription } from 'rxjs';
+import { Animal } from '../../types';
 
 export const useAnimalsData = () => {
-  const [animals, setAnimals] = useState<any[]>([]);
+  const [animals, setAnimals] = useState<Animal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let sub: any;
-    let isMounted = true;
+    let sub: Subscription | null = null;
     
     const init = async () => {
       try {
         const db = await bootCoreDatabase();
-        if (!db?.collections?.animals || !isMounted) return;
+        if (!db?.collections?.animals) {
+          setIsLoading(false);
+          return;
+        }
 
         const query = db.collections.animals.find({
           selector: { is_deleted: false, archived: false }
         });
 
-        // The exact fix for the polling loop: ensure we only set state if mounted.
+        // Safe, simple subscription
         sub = query.$.subscribe(results => {
-          if (isMounted) {
-            setAnimals(results.map(d => d.toJSON()));
-            setIsLoading(false);
-          }
+          setAnimals(results.map(d => d.toJSON()));
+          setIsLoading(false);
         });
       } catch (err) {
         console.error("Failed to subscribe to animals:", err);
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
       }
     };
 
     init();
+
     return () => {
-      isMounted = false;
       if (sub) sub.unsubscribe();
     };
   }, []);
