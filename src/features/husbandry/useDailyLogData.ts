@@ -11,37 +11,43 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
   const [isLogsLoading, setIsLogsLoading] = useState(true);
 
   useEffect(() => {
-    if (!db?.collections?.daily_logs) return;
+    // Safely wait for the database and table to be fully attached
+    if (!db || !db.collections || !db.collections.daily_logs) {
+      return;
+    }
 
     let sub: Subscription | null = null;
     let isMounted = true;
 
     const loadLogs = async () => {
       try {
-        const query = db.collections.daily_logs.find({
-          selector: { is_deleted: false }
-        });
+        // NO SELECTOR
+        const query = db.collections.daily_logs.find();
 
-        // 1. Initial Fetch + Purification
-        const rxDocs = await query.exec();
-        const cleanData = JSON.parse(JSON.stringify(rxDocs.map(d => d.toJSON())));
-        
-        console.log(`📝 [Logs Heartbeat] Database returned ${cleanData.length} records.`);
-
+        // 1. Initial Native Fetch
+        const rawDocs = await query.exec();
         if (isMounted) {
-          setAllLogs(cleanData);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cleanData = JSON.parse(JSON.stringify(rawDocs.map((d: any) => typeof d.toJSON === 'function' ? d.toJSON() : d)));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const activeLogs = cleanData.filter((log: any) => !log.is_deleted);
+          setAllLogs(activeLogs);
           setIsLogsLoading(false);
         }
 
         // 2. Background Listener
-        sub = query.$.subscribe(docs => {
-          const updatedData = JSON.parse(JSON.stringify(docs.map(doc => doc.toJSON())));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sub = query.$.subscribe((docs: any[]) => {
           if (isMounted) {
-            setAllLogs(updatedData);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const updatedData = JSON.parse(JSON.stringify(docs.map((d: any) => typeof d.toJSON === 'function' ? d.toJSON() : d)));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const activeLogs = updatedData.filter((log: any) => !log.is_deleted);
+            setAllLogs(activeLogs);
           }
         });
       } catch (err) {
-        console.error('🚨 [Logs Heartbeat] Query Failed:', err);
+        console.error('Failed to load daily logs:', err);
         if (isMounted) setIsLogsLoading(false);
       }
     };
@@ -61,7 +67,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
   }, [logs]);
 
   const addLogEntry = useCallback(async (entry: Partial<LogEntry>) => {
-    if (!db) return;
+    if (!db?.collections?.daily_logs) return;
     try {
       await db.collections.daily_logs.insert({
         id: crypto.randomUUID(),
