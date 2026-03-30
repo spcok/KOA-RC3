@@ -13,6 +13,25 @@ export const DatabaseBootProvider = ({ children }: { children: React.ReactNode }
         const database = await bootCoreDatabase();
         if (isMounted) {
           setDb(database);
+          
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore - Expose for raw console auditing
+          window.koa_db = database;
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          window.dumpAnimals = async () => {
+            const docs = await database.animals.find().exec();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            console.table(docs.map((d: any) => ({ 
+              name: d.name, 
+              id: d.id, 
+              sync_id: d._meta?.lwt, 
+              deleted: d.is_deleted 
+            })));
+            return `Total Animals in Local DB: ${docs.length}`;
+          };
+
           startCoreSync();
         }
       } catch (err) {

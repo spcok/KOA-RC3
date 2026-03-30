@@ -11,10 +11,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
   const [isLogsLoading, setIsLogsLoading] = useState(true);
 
   useEffect(() => {
-    if (!db?.collections?.daily_logs) {
-      setTimeout(() => setIsLogsLoading(false), 0);
-      return;
-    }
+    if (!db?.collections?.daily_logs) return;
 
     let sub: Subscription | null = null;
     let isMounted = true;
@@ -25,21 +22,26 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
           selector: { is_deleted: false }
         });
 
-        // 1. BRUTE FORCE INITIAL FETCH
-        const initialResults = await query.exec();
+        // 1. Initial Fetch + Purification
+        const rxDocs = await query.exec();
+        const cleanData = JSON.parse(JSON.stringify(rxDocs.map(d => d.toJSON())));
+        
+        console.log(`📝 [Logs Heartbeat] Database returned ${cleanData.length} records.`);
+
         if (isMounted) {
-          setAllLogs(initialResults.map(d => d.toJSON() as LogEntry));
+          setAllLogs(cleanData);
           setIsLogsLoading(false);
         }
 
-        // 2. BACKGROUND LISTENER FOR FUTURE SYNC UPDATES
+        // 2. Background Listener
         sub = query.$.subscribe(docs => {
+          const updatedData = JSON.parse(JSON.stringify(docs.map(doc => doc.toJSON())));
           if (isMounted) {
-            setAllLogs(docs.map(doc => doc.toJSON() as LogEntry));
+            setAllLogs(updatedData);
           }
         });
       } catch (err) {
-        console.error('Failed to load daily logs:', err);
+        console.error('🚨 [Logs Heartbeat] Query Failed:', err);
         if (isMounted) setIsLogsLoading(false);
       }
     };

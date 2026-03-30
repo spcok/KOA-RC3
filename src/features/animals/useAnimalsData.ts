@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useDbStore } from '../../store/dbStore';
 import { Subscription } from 'rxjs';
-import { Animal } from '../../types';
 
 export const useAnimalsData = () => {
   const db = useDbStore(state => state.db);
-  const [animals, setAnimals] = useState<Animal[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [animals, setAnimals] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!db?.collections?.animals) {
-      setTimeout(() => setIsLoading(false), 0);
-      return;
-    }
+    if (!db?.collections?.animals) return;
 
     let sub: Subscription | null = null;
     let isMounted = true;
@@ -23,33 +20,36 @@ export const useAnimalsData = () => {
           selector: { is_deleted: false, archived: false }
         });
 
-        // 1. BRUTE FORCE INITIAL FETCH
-        const initialResults = await query.exec();
+        // 1. Initial Fetch + Purification
+        const rxDocs = await query.exec();
+        const cleanData = JSON.parse(JSON.stringify(rxDocs.map(d => d.toJSON())));
+        
+        console.log(`🦁 [Animals Heartbeat] Database returned ${cleanData.length} records.`);
+
         if (isMounted) {
-          setAnimals(initialResults.map(d => d.toJSON() as Animal));
+          setAnimals(cleanData);
           setIsLoading(false);
         }
 
-        // 2. BACKGROUND LISTENER FOR FUTURE SYNC UPDATES
+        // 2. Background Listener
         sub = query.$.subscribe(results => {
+          const updatedData = JSON.parse(JSON.stringify(results.map(d => d.toJSON())));
           if (isMounted) {
-            setAnimals(results.map(d => d.toJSON() as Animal));
+            setAnimals(updatedData);
           }
         });
-
       } catch (err) {
-        console.error("Failed to load animals:", err);
+        console.error("🚨 [Animals Heartbeat] Query Failed:", err);
         if (isMounted) setIsLoading(false);
       }
     };
 
     loadData();
-
     return () => {
       isMounted = false;
       if (sub) sub.unsubscribe();
     };
-  }, [db]); 
+  }, [db]);
 
   return { animals, isLoading };
 };
