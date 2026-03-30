@@ -1,56 +1,21 @@
-import { useEffect, useState } from 'react';
-import { Provider } from 'rxdb/plugins/react';
+import React, { useEffect, useState } from 'react';
+import { RxDatabase } from 'rxdb';
 import { bootCoreDatabase } from '../lib/bootCoreDatabase';
 import { startCoreSync } from '../lib/DatabaseCore';
-import { useAuthStore } from '../store/authStore';
-import { RxDatabase } from 'rxdb';
 
-export const DatabaseBootProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const { session } = useAuthStore();
+export const DatabaseBootProvider = ({ children }: { children: React.ReactNode }) => {
   const [db, setDb] = useState<RxDatabase | null>(null);
-  const [isBooting, setIsBooting] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
     const initDb = async () => {
-      try {
-        const database = await bootCoreDatabase();
-        if (session) {
-           startCoreSync().catch(e => console.warn(e));
-        }
-        if (isMounted) {
-          setDb(database);
-          setIsBooting(false);
-        }
-      } catch (err: unknown) {
-        if (isMounted) setError(err instanceof Error ? err.message : "Failed to initialize local database.");
-      }
+      const database = await bootCoreDatabase();
+      setDb(database);
+      startCoreSync(); 
     };
-    
     initDb();
-    return () => { isMounted = false; };
-  }, [session]);
+  }, []);
 
-  if (error) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#1c1c1e] text-rose-500 font-mono text-xs">
-        <p>Fatal Database Error: {error}</p>
-        <button onClick={() => window.location.reload()} className="ml-4 underline">Restart</button>
-      </div>
-    );
-  }
+  if (!db) return <div className="flex h-screen items-center justify-center">Booting Secure Database...</div>;
 
-  if (isBooting || !db) {
-    return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#18181b]">
-        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6"></div>
-        <p className="text-emerald-500 font-mono text-[10px] font-bold tracking-[0.3em] uppercase animate-pulse">
-          Building Pristine Engine...
-        </p>
-      </div>
-    );
-  }
-
-  return <Provider db={db}>{children}</Provider>;
+  return <>{children}</>;
 };

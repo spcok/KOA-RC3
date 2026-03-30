@@ -10,26 +10,30 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
 
   useEffect(() => {
     let isMounted = true;
-    const subs: { unsubscribe: () => void }[] = [];
+    let sub: any = null; // SAFE: Declare outside async scope so cleanup can find it
 
     const loadLogs = async () => {
       try {
         const db = await bootCoreDatabase();
-        if (!db.collections || !db.collections.daily_logs) {
+        
+        // SAFE: Check if React unmounted while we were waiting for the DB
+        if (!db?.collections?.daily_logs || !isMounted) {
           if (isMounted) setIsLogsLoading(false);
           return;
         }
 
-        const query = db.collections.daily_logs.find();
-        const sub = query.$.subscribe(docs => {
+        const query = db.collections.daily_logs.find({
+          selector: { is_deleted: false }
+        });
+        
+        sub = query.$.subscribe(docs => {
           if (isMounted) {
             setAllLogs(docs.map(doc => doc.toJSON() as LogEntry));
-            setIsLogsLoading(false);
+            setIsLoading(false);
           }
         });
-        subs.push(sub);
       } catch (err: unknown) {
-        console.error('Failed to load daily logs:', err instanceof Error ? err.message : err);
+        console.error('Failed to load daily logs:', err);
         if (isMounted) setIsLogsLoading(false);
       }
     };
@@ -38,7 +42,8 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
 
     return () => {
       isMounted = false;
-      subs.forEach(s => s.unsubscribe());
+      // SAFE: This will accurately destroy the subscription when the component closes
+      if (sub) sub.unsubscribe();
     };
   }, [viewDate, animalId]);
 
@@ -54,6 +59,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
       await db.collections.daily_logs.insert({
         id: crypto.randomUUID(),
         created_at: new Date().toISOString(),
+        is_deleted: false,
         ...entry
       });
     } catch (err) {
@@ -65,5 +71,11 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
     return animals.filter(a => activeCategory === 'all' || a.category === activeCategory);
   }, [animals, activeCategory]);
 
-  return { animals: filteredAnimals, getTodayLog, addLogEntry, dailyLogs: logs, isLoading: animalsLoading || isLogsLoading };
+  return { 
+    animals: filteredAnimals, 
+    getTodayLog, 
+    addLogEntry, 
+    dailyLogs: logs, 
+    isLoading: animalsLoading || isLogsLoading 
+  };
 };
