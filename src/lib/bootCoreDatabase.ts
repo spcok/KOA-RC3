@@ -11,16 +11,23 @@ export const bootCoreDatabase = (): Promise<RxDatabase> => {
     console.log("☢️ [Nuclear Reset] Wiping old tablet caches...");
     
     // Silently clear out the corrupted ghost databases
+    try { await removeRxDatabase('koa_manager_v6', getRxStorageDexie()); } catch { /* ignore */ }
+    try { await removeRxDatabase('koa_manager_v7', getRxStorageDexie()); } catch { /* ignore */ }
+    try { await removeRxDatabase('koa_manager_v8', getRxStorageDexie()); } catch { /* ignore */ }
+    try { await removeRxDatabase('koa_manager_v9', getRxStorageDexie()); } catch { /* ignore */ }
+    try { await removeRxDatabase('koa_manager_v10', getRxStorageDexie()); } catch { /* ignore */ }
+    try { await removeRxDatabase('koa_manager_v11', getRxStorageDexie()); } catch { /* ignore */ }
     try { await removeRxDatabase('koa_manager_v12', getRxStorageDexie()); } catch { /* ignore */ }
     try { await removeRxDatabase('koa_manager_v13', getRxStorageDexie()); } catch { /* ignore */ }
     try { await removeRxDatabase('koa_manager_v14', getRxStorageDexie()); } catch { /* ignore */ }
     try { await removeRxDatabase('koa_manager_v15', getRxStorageDexie()); } catch { /* ignore */ }
     try { await removeRxDatabase('koa_manager_v16', getRxStorageDexie()); } catch { /* ignore */ }
+    try { await removeRxDatabase('koa_manager_v17', getRxStorageDexie()); } catch { /* ignore */ }
 
     console.log("🟢 [Core DB] Booting Invincible RxDB Engine v17...");
     
     const db = await createRxDatabase({
-      name: 'koa_manager_v17',
+      name: 'koa_manager_v18',
       storage: getRxStorageDexie()
     });
 
@@ -43,7 +50,7 @@ export const bootCoreDatabase = (): Promise<RxDatabase> => {
       throw new Error("Database collections failed to attach.");
     }
 
-    console.log("✅ [Core DB] v17 Initialized and Tables Attached.");
+    console.log("✅ [Core DB] v18 Initialized and Tables Attached.");
     return db;
   })();
 

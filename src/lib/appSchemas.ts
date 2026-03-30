@@ -112,7 +112,7 @@ export const appSchemas: Record<string, { schema: RxJsonSchema<any> }> = {
         date: { type: 'string' },
         shift: { type: 'string' },
         section: { type: 'string' },
-        check_data: { type: 'object' },
+        check_data: { type: 'object', additionalProperties: true },
         status: { type: 'string' },
         completed_by: { type: 'string' },
         completed_at: { type: 'string' },
@@ -389,7 +389,7 @@ export const appSchemas: Record<string, { schema: RxJsonSchema<any> }> = {
         initials: { type: 'string' },
         pin: { type: 'string' },
         job_position: { type: 'string' },
-        permissions: { type: 'object' },
+        permissions: { type: 'object', additionalProperties: true },
         signature_data: { type: 'string' },
         integrity_seal: { type: 'string' }
       },
@@ -535,4 +535,7 @@ export const appSchemas: Record<string, { schema: RxJsonSchema<any> }> = {
 };
 
 // archived_animals uses the same schema as animals
-appSchemas.archived_animals = { schema: appSchemas.animals.schema };
+// We use a deep clone to prevent RxDB's internal schema mutation from causing collisions
+appSchemas.archived_animals = { 
+  schema: JSON.parse(JSON.stringify(appSchemas.animals.schema)) 
+};
