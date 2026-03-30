@@ -1,46 +1,40 @@
 import { useState, useEffect } from 'react';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { useDbStore } from '../../store/dbStore';
 import { Subscription } from 'rxjs';
 import { Animal } from '../../types';
 
 export const useAnimalsData = () => {
+  const db = useDbStore(state => state.db);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!db?.collections?.animals) {
+      return;
+    }
+
     let sub: Subscription | null = null;
     
-    const init = async () => {
-      try {
-        const db = await bootCoreDatabase();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const collections = (db as any).collections;
-        if (!collections?.animals) {
-          setIsLoading(false);
-          return;
-        }
+    try {
+      const query = db.collections.animals.find({
+        selector: { is_deleted: false, archived: false }
+      });
 
-        const query = collections.animals.find({
-          selector: { is_deleted: false, archived: false }
-        });
-
-        // Safe, simple subscription
-        sub = query.$$.subscribe(results => {
-          setAnimals(results);
-          setIsLoading(false);
-        });
-      } catch (err) {
-        console.error("Failed to subscribe to animals:", err);
+      // Synchronous subscription using $$ for pure JSON
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sub = (query.$$ as any).subscribe((results: Animal[]) => {
+        setAnimals(results);
         setIsLoading(false);
-      }
-    };
-
-    init();
+      });
+    } catch (err) {
+      console.error("Failed to subscribe to animals:", err);
+      setTimeout(() => setIsLoading(false), 0);
+    }
 
     return () => {
       if (sub) sub.unsubscribe();
     };
-  }, []);
+  }, [db]); // Re-run if db changes
 
   return { animals, isLoading };
 };

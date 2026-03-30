@@ -1,46 +1,42 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { LogEntry, LogType } from '../../types';
 import { useAnimalsData } from '../animals/useAnimalsData';
-import { bootCoreDatabase } from '../../lib/bootCoreDatabase';
+import { useDbStore } from '../../store/dbStore';
 import { Subscription } from 'rxjs';
 
 export const useDailyLogData = (viewDate: string, activeCategory: string, animalId?: string) => {
+  const db = useDbStore(state => state.db);
   const { animals, isLoading: animalsLoading } = useAnimalsData();
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState(true);
 
   useEffect(() => {
+    if (!db?.collections?.daily_logs) {
+      return;
+    }
+
     let sub: Subscription | null = null;
 
-    const loadLogs = async () => {
-      try {
-        const db = await bootCoreDatabase();
-        if (!db?.collections?.daily_logs) {
-          setIsLogsLoading(false);
-          return;
-        }
-
-        const query = db.collections.daily_logs.find({
-          selector: { is_deleted: false }
-        });
-        
-        // Use $$ to guarantee a pure JSON array for React state
-        sub = query.$$.subscribe((docs: any[]) => {
-          setAllLogs(docs as LogEntry[]);
-          setIsLogsLoading(false);
-        });
-      } catch (err) {
-        console.error('Failed to load daily logs:', err);
+    try {
+      const query = db.collections.daily_logs.find({
+        selector: { is_deleted: false }
+      });
+      
+      // Synchronous subscription using $$ for pure JSON
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sub = (query.$$ as any).subscribe((docs: LogEntry[]) => {
+        setAllLogs(docs);
         setIsLogsLoading(false);
-      }
-    };
-
-    loadLogs();
+      });
+    } catch (err) {
+      console.error('Failed to load daily logs:', err);
+      setTimeout(() => setIsLogsLoading(false), 0);
+    }
 
     return () => {
       if (sub) sub.unsubscribe();
     };
-  }, [viewDate, animalId]);
+  }, [db, viewDate, animalId]);
 
   const logs = useMemo(() => allLogs, [allLogs]);
 
@@ -49,8 +45,8 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
   }, [logs]);
 
   const addLogEntry = useCallback(async (entry: Partial<LogEntry>) => {
+    if (!db) return;
     try {
-      const db = await bootCoreDatabase();
       await db.collections.daily_logs.insert({
         id: crypto.randomUUID(),
         created_at: new Date().toISOString(),
@@ -60,7 +56,7 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
     } catch (err) {
       console.error('Failed to add log entry:', err);
     }
-  }, []);
+  }, [db]);
 
   const filteredAnimals = useMemo(() => {
     return animals.filter(a => activeCategory === 'all' || a.category === activeCategory);
