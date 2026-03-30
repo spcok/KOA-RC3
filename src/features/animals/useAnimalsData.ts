@@ -13,18 +13,20 @@ export const useAnimalsData = () => {
     const init = async () => {
       try {
         const db = await bootCoreDatabase();
-        if (!db?.collections?.animals) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const collections = (db as any).collections;
+        if (!collections?.animals) {
           setIsLoading(false);
           return;
         }
 
-        const query = db.collections.animals.find({
+        const query = collections.animals.find({
           selector: { is_deleted: false, archived: false }
         });
 
         // Safe, simple subscription
-        sub = query.$.subscribe(results => {
-          setAnimals(results.map(d => d.toJSON()));
+        sub = query.$$.subscribe(results => {
+          setAnimals(results);
           setIsLoading(false);
         });
       } catch (err) {

@@ -15,7 +15,6 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
     const loadLogs = async () => {
       try {
         const db = await bootCoreDatabase();
-        
         if (!db?.collections?.daily_logs) {
           setIsLogsLoading(false);
           return;
@@ -25,11 +24,12 @@ export const useDailyLogData = (viewDate: string, activeCategory: string, animal
           selector: { is_deleted: false }
         });
         
-        sub = query.$.subscribe(docs => {
-          setAllLogs(docs.map(doc => doc.toJSON() as LogEntry));
+        // Use $$ to guarantee a pure JSON array for React state
+        sub = query.$$.subscribe((docs: any[]) => {
+          setAllLogs(docs as LogEntry[]);
           setIsLogsLoading(false);
         });
-      } catch (err: unknown) {
+      } catch (err) {
         console.error('Failed to load daily logs:', err);
         setIsLogsLoading(false);
       }
