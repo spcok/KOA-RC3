@@ -13,25 +13,6 @@ export const DatabaseBootProvider = ({ children }: { children: React.ReactNode }
         const database = await bootCoreDatabase();
         if (isMounted) {
           setDb(database);
-          
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore - Expose for raw console auditing
-          window.koa_db = database;
-
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          window.dumpAnimals = async () => {
-            const docs = await database.animals.find().exec();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            console.table(docs.map((d: any) => ({ 
-              name: d.name, 
-              id: d.id, 
-              sync_id: d._meta?.lwt, 
-              deleted: d.is_deleted 
-            })));
-            return `Total Animals in Local DB: ${docs.length}`;
-          };
-
           startCoreSync();
         }
       } catch (err) {
@@ -59,5 +40,32 @@ export const DatabaseBootProvider = ({ children }: { children: React.ReactNode }
     );
   }
 
-  return <>{children}</>;
+  // DIAGNOSTIC ON-SCREEN DUMP
+  const runDiagnostic = async () => {
+    try {
+      if (!db.collections?.animals) {
+        alert("❌ RxDB Collections not attached yet.");
+        return;
+      }
+      const docs = await db.collections.animals.find().exec();
+      alert(`✅ RAW DATABASE TRUTH:\n\nThe local database contains exactly ${docs.length} animal records.`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      alert(`🚨 QUERY FAILED: ${e.message}`);
+    }
+  };
+
+  return (
+    <>
+      {/* MASSIVE UGLY BUTTON TO BYPASS IFRAME CONSOLE LIMITS */}
+      <button 
+        onClick={runDiagnostic}
+        className="fixed top-4 right-4 z-[9999] bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-2xl border-4 border-white hover:bg-red-700"
+      >
+        🕵️ X-RAY DATABASE
+      </button>
+
+      {children}
+    </>
+  );
 };
